@@ -1,0 +1,887 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projeção de Captação 25.2 x 26.2</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#152033;--muted:#667085;--line:#d9e2ef;--blue:#1f4e78;--blue2:#2c75ad;--green:#047857;--red:#b42318;--yellow:#fff8dc}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,#123654,#2470a7);color:#fff;padding:24px 32px} header h1{margin:0 0 8px;font-size:27px} header p{margin:0;opacity:.93;line-height:1.45}
+.container{max-width:1500px;margin:auto;padding:22px} .cards{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:14px;margin-bottom:18px}
+.card,.panel{background:var(--card);border:1px solid var(--line);border-radius:15px;box-shadow:0 2px 8px rgba(15,23,42,.05)} .card{padding:16px} .card .label{color:var(--muted);font-size:13px} .card .value{font-size:27px;font-weight:800;margin-top:8px}
+.panel{padding:18px;margin-bottom:18px} .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px} .note{color:var(--muted);font-size:13px;line-height:1.4}
+input[type=text]{padding:10px 12px;border:1px solid var(--line);border-radius:10px;width:310px;max-width:100%} button{background:var(--blue);color:#fff;border:0;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700} button:hover{opacity:.92}
+.table-wrap{max-height:620px;overflow:auto;border:1px solid var(--line);border-radius:12px} table{border-collapse:collapse;width:100%;min-width:1160px;background:#fff} th,td{border-bottom:1px solid var(--line);padding:9px 10px;text-align:right;font-size:13px;white-space:nowrap} th{position:sticky;top:0;background:var(--blue);color:#fff;z-index:1} td:first-child,th:first-child{text-align:left} tbody tr{cursor:pointer} tbody tr:hover{background:#eef6fc} tbody tr.selected{background:#dceefb}
+.editnum{width:90px;padding:7px;border:1px solid #94b9d6;border-radius:8px;text-align:right;font-weight:700;background:var(--yellow)} .good{color:var(--green);font-weight:700} .bad{color:var(--red);font-weight:700}
+canvas{width:100%;max-height:410px} .grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:18px} @media(max-width:980px){.cards{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+</style>
+
+<style id="ajustes-operacoes-css">
+  .grupo-operacoes-bloco {
+    margin: 18px 0 12px;
+    padding: 14px;
+    border: 2px solid #0f766e;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #ecfeff, #f0fdfa);
+    box-shadow: 0 8px 18px rgba(15, 118, 110, 0.12);
+  }
+  .grupo-operacoes-titulo {
+    font-weight: 800;
+    color: #0f766e;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+  .linha-operacoes-destaque,
+  tr.linha-operacoes-destaque td {
+    background: #ccfbf1 !important;
+    font-weight: 700 !important;
+    color: #134e4a !important;
+  }
+  .card-operacoes-destaque,
+  .unit-card.operacoes,
+  .unidade-card.operacoes {
+    border: 2px solid #0f766e !important;
+    background: linear-gradient(135deg, #ecfeff, #ccfbf1) !important;
+    box-shadow: 0 8px 18px rgba(15, 118, 110, 0.16) !important;
+  }
+  .badge-operacoes {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #0f766e;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    margin-left: 6px;
+  }
+</style>
+
+
+<style id="ajustes-v4-css">
+  .toolbar .sort-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .sortbtn{background:#1f4e78;color:#fff;border:0;padding:9px 12px;border-radius:9px;cursor:pointer;font-weight:700}
+  .sortbtn.secondary{background:#2c75ad}
+  tr.grupo-azul td{
+    background:#1f4e78 !important;
+    color:#fff !important;
+    font-weight:800 !important;
+  }
+  tr.grupo-azul td input{
+    background:#eaf4ff !important;
+    color:#152033 !important;
+    border-color:#fff !important;
+  }
+  .modal{
+    display:none;
+    position:fixed;
+    z-index:9999;
+    inset:0;
+    background:rgba(15,32,51,.72);
+    padding:26px;
+  }
+  .modal.open{display:flex;align-items:center;justify-content:center}
+  .modal-content{
+    background:#fff;
+    width:min(1320px,96vw);
+    max-height:94vh;
+    overflow:auto;
+    border-radius:18px;
+    padding:18px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25);
+  }
+  .modal-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:14px;
+    margin-bottom:8px;
+  }
+  .modal-close{
+    background:#b42318;
+    color:#fff;
+    border:0;
+    border-radius:10px;
+    padding:9px 13px;
+    font-weight:800;
+    cursor:pointer;
+  }
+  .legend{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    font-size:13px;
+    color:#667085;
+    margin-top:6px;
+  }
+  .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .dot.blue{background:#1f4e78}.dot.green{background:#047857}.dot.red{background:#b42318}
+</style>
+
+
+<style id="ajustes-v5-lock-css">
+  .lockbar{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin:10px 0 12px;
+    padding:10px;
+    background:#f8fafc;
+    border:1px solid #d9e2ef;
+    border-radius:12px;
+  }
+  .lockbar-title{
+    font-weight:800;
+    color:#152033;
+    margin-right:4px;
+  }
+  .lock-month{
+    border:1px solid #94b9d6;
+    background:#fff;
+    color:#1f4e78;
+    padding:8px 10px;
+    border-radius:999px;
+    cursor:pointer;
+    font-weight:800;
+  }
+  .lock-month.locked{
+    background:#1f4e78;
+    color:#fff;
+    border-color:#1f4e78;
+  }
+  .lock-note{
+    color:#667085;
+    font-size:12px;
+    margin-left:4px;
+  }
+  th.locked-col, td.locked-col{
+    background:#eef6fc !important;
+  }
+  tr.grupo-azul td.locked-col{
+    background:#173f63 !important;
+  }
+</style>
+
+
+<style id="consolidacao-v6-css">
+  tr.consolidador td{
+    background:#1f4e78 !important;
+    color:#fff !important;
+    font-weight:900 !important;
+  }
+  tr.consolidador td input{
+    background:#dbeafe !important;
+    color:#152033 !important;
+    border-color:#fff !important;
+    pointer-events:none;
+    opacity:.9;
+  }
+  tr.consolidador td:first-child::after{
+    content:"  • consolidado automático";
+    font-size:11px;
+    opacity:.9;
+    font-weight:700;
+  }
+</style>
+
+
+<style id="filtro-gestor-v7-css">
+.filterbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 12px;padding:12px;background:#f8fafc;border:1px solid #d9e2ef;border-radius:12px}
+.filterbar label{font-weight:800;color:#152033;font-size:13px}
+.filterbar select{padding:9px 12px;border:1px solid #94b9d6;border-radius:10px;background:#fff;min-width:210px;color:#152033;font-weight:700}
+.filter-hint{color:#667085;font-size:12px}
+.ranking-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+.ranking-card{background:#fff;border:1px solid #d9e2ef;border-radius:14px;padding:13px;box-shadow:0 2px 8px rgba(15,23,42,.05);cursor:pointer}
+.ranking-card:hover{background:#eef6fc}
+.ranking-card.active{border:2px solid #1f4e78;background:#eaf4ff}
+.ranking-name{font-weight:900;color:#152033;font-size:13px;margin-bottom:8px}
+.ranking-pct{font-size:24px;font-weight:900;margin-bottom:7px}
+.bar-bg{height:9px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin-bottom:7px}
+.bar-fill{height:100%;width:0%;background:#1f4e78;border-radius:99px}
+.ranking-small{font-size:12px;color:#667085;line-height:1.35}
+@media(max-width:980px){.ranking-grid{grid-template-columns:1fr 1fr}}
+</style>
+
+
+<style id="pesos-projecao-v8-css">
+  .weightbar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin:10px 0 12px;
+    padding:12px;
+    background:#fffdf5;
+    border:1px solid #f3d38b;
+    border-radius:12px;
+  }
+  .weightbar-title{
+    font-weight:900;
+    color:#7a4b00;
+    margin-right:4px;
+  }
+  .weight-item{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    font-size:12px;
+    color:#152033;
+    font-weight:700;
+  }
+  .weight-item input{
+    width:66px;
+    padding:7px;
+    border:1px solid #d9b650;
+    border-radius:8px;
+    text-align:right;
+    font-weight:800;
+    background:#fff;
+  }
+  .weight-note{
+    color:#7a4b00;
+    font-size:12px;
+  }
+</style>
+
+
+<style id="firebase-v9-css">
+.save-status{position:fixed;right:18px;bottom:18px;z-index:10000;background:#152033;color:#fff;padding:10px 14px;border-radius:999px;font-size:13px;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.22);opacity:.94}
+.save-status.ok{background:#047857}.save-status.err{background:#b42318}
+</style>
+
+</head>
+<body>
+<header><h1>Projeção de Captação — 25.2 x 26.2</h1><p>Projeção iniciando em <strong>junho</strong> e seguindo até <strong>outubro/2026</strong>, calculada pelo ritmo atual de 26.2. Considera apenas dias úteis, de segunda a sexta. As colunas <strong>25.2</strong> e <strong>26.2</strong> são editáveis. A projeção final agora é comparada com a <strong>Meta Geral 2026.2</strong>.</p></header>
+<div class="container">
+<section class="cards">
+  <div class="card"><div class="label">Total 25.2</div><div class="value" id="k2025">0</div></div>
+  <div class="card"><div class="label">Total 26.2 atual</div><div class="value" id="k2026">0</div></div>
+  <div class="card"><div class="label">Meta Geral 2026.2</div><div class="value" id="kmeta">0</div></div>
+  <div class="card"><div class="label">Projeção até outubro</div><div class="value" id="kproj">0</div></div>
+  <div class="card"><div class="label">Projeção / Meta geral</div><div class="value" id="kgrowth">0%</div></div>
+</section>
+<section class="grid2" style="display:none">
+  <div class="panel"><div class="toolbar"><strong>Resumo geral por mês</strong><span class="note" id="daysInfo"></span></div><canvas id="chartTotal" width="1050" height="390"></canvas></div>
+  <div class="panel"><div class="toolbar"><strong>Top 10 por projeção final</strong></div><canvas id="chartTop" width="820" height="390"></canvas></div>
+</section>
+<section class="panel">
+  <div class="toolbar">
+    <div><strong>Unidades</strong><div class="note">Clique em uma unidade para abrir o gráfico em janela. Percentual calculado pela projeção final sobre a meta geral da unidade.</div></div>
+    <div class="sort-actions">
+      <input type="text" id="search" placeholder="Pesquisar unidade...">
+      <button class="sortbtn" onclick="setSortMode('desc')">Ordenar % decrescente</button>
+      <button class="sortbtn secondary" onclick="setSortMode('asc')">Ordenar % crescente</button>
+      <button onclick="resetValues()">Restaurar valores</button>
+    </div>
+  </div>
+
+
+  <div class="filterbar">
+    <label for="managerFilter">Gestor:</label>
+    <select id="managerFilter">
+      <option value="TODOS">Todos</option>
+      <option value="OPERAÇÕES">Operações</option>
+      <option value="PAULO PALMEIRA">Paulo Palmeira</option>
+      <option value="EDEN FERREIRA">Eden Ferreira</option>
+      <option value="AISLANE BELO">Aislane Belo</option>
+      <option value="MARCUS PONTE">Marcus Pontes</option>
+    </select>
+    <label for="unitFilter">Unidade:</label>
+    <select id="unitFilter"><option value="TODAS">Todas</option></select>
+    <span class="filter-hint">Use o filtro para ver apenas as unidades de cada gestor. Os cards do topo acompanham a seleção.</span>
+  </div>
+  <div class="ranking-grid" id="rankingGestores"></div>
+
+
+  <div class="weightbar">
+    <span class="weightbar-title">Pesos da projeção:</span>
+    <span class="weight-item">Jun <input id="wJun" type="number" step="0.1" value="0.8"></span>
+    <span class="weight-item">Jul <input id="wJul" type="number" step="0.1" value="1.4"></span>
+    <span class="weight-item">Ago <input id="wAgo" type="number" step="0.1" value="1.2"></span>
+    <span class="weight-item">Set <input id="wSet" type="number" step="0.1" value="0.9"></span>
+    <span class="weight-item">Out <input id="wOut" type="number" step="0.1" value="0.7"></span>
+    <span class="weight-note">A projeção agora usa ritmo diário × dias úteis × peso do mês.</span>
+  </div>
+
+  <div class="lockbar">
+    <span class="lockbar-title">Travar mês:</span>
+    <button type="button" class="lock-month" data-lock="0" onclick="toggleMonthLock(0)">🔓 Jun</button>
+    <button type="button" class="lock-month" data-lock="1" onclick="toggleMonthLock(1)">🔓 Jul</button>
+    <button type="button" class="lock-month" data-lock="2" onclick="toggleMonthLock(2)">🔓 Ago</button>
+    <button type="button" class="lock-month" data-lock="3" onclick="toggleMonthLock(3)">🔓 Set</button>
+    <button type="button" class="lock-month" data-lock="4" onclick="toggleMonthLock(4)">🔓 Out</button>
+    <span class="lock-note">Quando o cadeado estiver fechado, o valor daquele mês fica congelado mesmo alterando 25.2 ou 26.2.</span>
+  </div>
+
+  <div class="table-wrap"><table id="tbl"><thead><tr><th>Unidade</th><th>25.2</th><th>26.2 atual</th><th>Dif. 26.2 x 25.2</th><th>% Dif.</th><th>Proj. Jun</th><th>Proj. Jul</th><th>Proj. Ago</th><th>Proj. Set</th><th>Proj. Out</th><th>Meta Geral 2026.2</th><th>% Captação / Meta</th><th>Projeção final</th><th>% Projeção / Meta</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+</div>
+
+<div id="unitModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-head">
+      <div>
+        <strong id="unitTitle">Projeção diária por unidade</strong>
+        <div class="note" id="unitSummary"></div>
+        <div class="legend">
+          <span><i class="dot blue"></i>26.2 atual/projeção</span>
+          <span><i class="dot green"></i>25.2 comparativo</span>
+          <span><i class="dot red"></i>Meta 26.2</span>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeUnitModal()">Fechar</button>
+    </div>
+    <canvas id="chartUnit" width="1280" height="460"></canvas>
+  </div>
+</div>
+
+<script>
+const originalData = [{"linha": 8, "unidade": "UNINASSAU - Graças", "v2025": 91.0, "v2026": 97.0, "ritmo": 105.68544857768052, "meta": 2123.0}, {"linha": 9, "unidade": "UNINASSAU - João Pessoa", "v2025": 54.0, "v2026": 75.0, "ritmo": 59.19944979367263, "meta": 797.0}, {"linha": 10, "unidade": "UNINASSAU - Campina Grande", "v2025": 70.0, "v2026": 101.0, "ritmo": 78.205499276411, "meta": 772.0}, {"linha": 11, "unidade": "UNINASSAU - Salvador", "v2025": 27.0, "v2026": 32.0, "ritmo": 39.020547945205486, "meta": 422.0}, {"linha": 12, "unidade": "UNINASSAU - Natal", "v2025": 85.0, "v2026": 99.0, "ritmo": 93.6960882647944, "meta": 1099.0}, {"linha": 13, "unidade": "UNINASSAU - Maceió", "v2025": 126.0, "v2026": 161.0, "ritmo": 146.48466257668707, "meta": 1137.0}, {"linha": 14, "unidade": "UNINASSAU - Aracajú", "v2025": 52.0, "v2026": 75.0, "ritmo": 57.07317073170732, "meta": 720.0}, {"linha": 16, "unidade": "UNINASSAU - Fortaleza", "v2025": 75.0, "v2026": 94.0, "ritmo": 83.78309572301423, "meta": 1097.0}, {"linha": 19, "unidade": "UNINASSAU - Caruaru", "v2025": 76.0, "v2026": 85.0, "ritmo": 79.6774193548387, "meta": 975.0}, {"linha": 20, "unidade": "UNINASSAU - São Luís", "v2025": 22.0, "v2026": 30.0, "ritmo": 26.41317365269462, "meta": 401.0}, {"linha": 23, "unidade": "UNINASSAU - Paulista", "v2025": 41.0, "v2026": 67.0, "ritmo": 44.142857142857146, "meta": 618.0}, {"linha": 26, "unidade": "UNINASSAU - Redenção (Aliança)", "v2025": 22.0, "v2026": 33.0, "ritmo": 25.58865248226949, "meta": 492.0}, {"linha": 27, "unidade": "UNINASSAU - Teresina", "v2025": 32.0, "v2026": 56.0, "ritmo": 28.817051509769094, "meta": 507.0}, {"linha": 28, "unidade": "UNINASSAU - Parnaíba", "v2025": 19.0, "v2026": 40.0, "ritmo": 23.268493150684925, "meta": 447.0}, {"linha": 29, "unidade": "UNINASSAU - Vitória da Conquista", "v2025": 27.0, "v2026": 32.0, "ritmo": 30.294915254237296, "meta": 331.0}, {"linha": 31, "unidade": "UNINASSAU - Olinda", "v2025": 23.0, "v2026": 54.0, "ritmo": 25.598326359832633, "meta": 532.0}, {"linha": 33, "unidade": "UNINASSAU - Petrolina", "v2025": 68.0, "v2026": 104.0, "ritmo": 74.22650602409638, "meta": 906.0}, {"linha": 34, "unidade": "UNINASSAU - Cabo", "v2025": 26.0, "v2026": 28.0, "ritmo": 31.67918088737202, "meta": 357.0}, {"linha": 37, "unidade": "UNAMA - Belém", "v2025": 58.0, "v2026": 80.0, "ritmo": 73.70636215334422, "meta": 1558.0}, {"linha": 38, "unidade": "UNAMA - Santarém", "v2025": 38.0, "v2026": 46.0, "ritmo": 39.62277580071175, "meta": 586.0}, {"linha": 41, "unidade": "UNINASSAU - Parangaba", "v2025": 50.0, "v2026": 80.0, "ritmo": 59.50797872340425, "meta": 895.0}, {"linha": 42, "unidade": "UNINASSAU - Rio de Janeiro", "v2025": 24.0, "v2026": 28.0, "ritmo": 37.056994818652846, "meta": 298.0}, {"linha": 44, "unidade": "UNINASSAU - Garanhuns", "v2025": 32.0, "v2026": 21.0, "ritmo": 36.90421455938698, "meta": 301.0}, {"linha": 46, "unidade": "UNAMA - Marabá", "v2025": 34.0, "v2026": 19.0, "ritmo": 39.50837988826817, "meta": 416.0}, {"linha": 49, "unidade": "UNINASSAU - Maracanaú", "v2025": 44.0, "v2026": 68.0, "ritmo": 50.90543259557342, "meta": 575.0}, {"linha": 50, "unidade": "UNINASSAU - Sobral", "v2025": 1.0, "v2026": 16.0, "ritmo": 2.67901234567901, "meta": 217.0}, {"linha": 52, "unidade": "UNAMA - Porto Velho", "v2025": 12.0, "v2026": 54.0, "ritmo": 23.30578512396695, "meta": 235.0}, {"linha": 53, "unidade": "UNAMA - Boa Vista", "v2025": 32.0, "v2026": 54.0, "ritmo": 39.92263056092845, "meta": 645.0}, {"linha": 54, "unidade": "UNINASSAU - Mossoró", "v2025": 92.0, "v2026": 80.0, "ritmo": 97.99233716475098, "meta": 556.0}, {"linha": 55, "unidade": "UNINASSAU - Boa Viagem", "v2025": 87.0, "v2026": 43.0, "ritmo": 97.36889897843359, "meta": 986.0}, {"linha": 56, "unidade": "UNINASSAU - Arapiraca", "v2025": 45.0, "v2026": 17.0, "ritmo": 48.4090909090909, "meta": 355.0}, {"linha": 58, "unidade": "UNAMA - Macapá", "v2025": 12.0, "v2026": 22.0, "ritmo": 13.841860465116277, "meta": 248.0}, {"linha": 59, "unidade": "UNINASSAU - Palmas", "v2025": 27.0, "v2026": 35.0, "ritmo": 32.75999999999999, "meta": 455.0}, {"linha": 66, "unidade": "UNAMA - BR Ananindeua", "v2025": 31.0, "v2026": 46.0, "ritmo": 36.57303370786516, "meta": 630.0}, {"linha": 67, "unidade": "UNAMA - Parque Shopping", "v2025": 33.0, "v2026": 26.0, "ritmo": 43.15384615384616, "meta": 561.0}, {"linha": 69, "unidade": "UNAMA - Rio Branco", "v2025": 23.0, "v2026": 53.0, "ritmo": 24.593073593073598, "meta": 247.0}, {"linha": 70, "unidade": "UNINASSAU - Brasília", "v2025": 15.0, "v2026": 42.0, "ritmo": 25.89385474860336, "meta": 309.0}, {"linha": 72, "unidade": "UNINASSAU - Caxangá", "v2025": 41.0, "v2026": 59.0, "ritmo": 47.615384615384635, "meta": 619.0}, {"linha": 73, "unidade": "UNAMA - Castanhal", "v2025": 13.0, "v2026": 9.0, "ritmo": 20.055276381909547, "meta": 307.0}, {"linha": 74, "unidade": "UNINASSAU - Juazeiro", "v2025": 54.0, "v2026": 54.0, "ritmo": 59.67835051546393, "meta": 536.0}, {"linha": 75, "unidade": "UNINASSAU - Cacoal", "v2025": 18.0, "v2026": 33.0, "ritmo": 33.144230769230774, "meta": 383.0}, {"linha": 76, "unidade": "UNINASSAU - Serra Talhada", "v2025": 30.0, "v2026": 32.0, "ritmo": 48.34710743801652, "meta": 390.0}, {"linha": 78, "unidade": "UNINASSAU - Barreiras", "v2025": 32.0, "v2026": 26.0, "ritmo": 34.98039215686274, "meta": 446.0}, {"linha": 79, "unidade": "Faculdade Unesc/Unama", "v2025": 5.0, "v2026": 0.0, "ritmo": 0.0, "meta": 0.0}, {"linha": 80, "unidade": "UNINASSAU - Vilhena", "v2025": 15.0, "v2026": 20.0, "ritmo": 18.768844221105525, "meta": 249.0}, {"linha": 81, "unidade": "UNINASSAU - Imperatriz", "v2025": 1.0, "v2026": 3.0, "ritmo": 1.214285714285714, "meta": 51.0}, {"linha": 82, "unidade": "UNIFAEL - Curitiba", "v2025": 16.0, "v2026": 10.0, "ritmo": 21.75, "meta": 174.0}, {"linha": 83, "unidade": "UNIFAEL - Porto Alegre", "v2025": 12.0, "v2026": 24.0, "ritmo": 18.85714285714285, "meta": 99.0}, {"linha": 84, "unidade": "UNI7", "v2025": 35.0, "v2026": 48.0, "ritmo": 45.100000000000016, "meta": 451.0}, {"linha": 85, "unidade": "UNINASSAU - Carpina", "v2025": 17.0, "v2026": 40.0, "ritmo": 21.66285714285714, "meta": 223.0}, {"linha": 86, "unidade": "UNG - Itaquaquecetuba", "v2025": 30.0, "v2026": 48.0, "ritmo": 37.54777070063694, "meta": 393.0}, {"linha": 87, "unidade": "UNG - Guarulhos", "v2025": 114.0, "v2026": 110.0, "ritmo": 117.12771996215704, "meta": 1086.0}, {"linha": 88, "unidade": "UNINORTE - Djalma Batista", "v2025": 61.0, "v2026": 56.0, "ritmo": 78.11510791366905, "meta": 890.0}, {"linha": 89, "unidade": "UNINORTE - Cidade Nova", "v2025": 60.0, "v2026": 51.0, "ritmo": 69.75, "meta": 465.0}, {"linha": 90, "unidade": "UNINORTE - Centro", "v2025": 89.0, "v2026": 77.0, "ritmo": 130.11695906432746, "meta": 1250.0}, {"linha": 91, "unidade": "UNIFAEL - Lapa", "v2025": 0.0, "v2026": 9.0, "ritmo": 0.0, "meta": 146.0}, {"linha": 92, "unidade": "UNINORTE - Zona Leste", "v2025": 9.0, "v2026": 26.0, "ritmo": 11.95419847328244, "meta": 174.0}, {"linha": 93, "unidade": "UNAMA - Bragança", "v2025": 23.0, "v2026": 12.0, "ritmo": 36.225, "meta": 252.0}, {"linha": 94, "unidade": "UNINASSAU - Patos", "v2025": 0.0, "v2026": 17.0, "ritmo": 0.0, "meta": 180.0}, {"linha": 95, "unidade": "UNIFAEL - Florianópolis", "v2025": 0.0, "v2026": 12.0, "ritmo": 0.0, "meta": 111.0}, {"linha": 99, "unidade": "OPERAÇÕES", "v2025": 179.0, "v2026": 206.0, "ritmo": 199.775490662794, "meta": 1930.0}, {"linha": 100, "unidade": "PAULO PALMEIRA", "v2025": 513.0, "v2026": 691.0, "ritmo": 595.3129378281196, "meta": 8346.0}, {"linha": 101, "unidade": "MARCUS PONTE", "v2025": 473.0, "v2026": 604.0, "ritmo": 523.2374801297246, "meta": 6204.0}, {"linha": 102, "unidade": "EDEN FERREIRA", "v2025": 566.0, "v2026": 684.0, "ritmo": 732.3573642706456, "meta": 9096.0}, {"linha": 103, "unidade": "AISLANE BELO", "v2025": 570.0, "v2026": 684.0, "ritmo": 677.8874560335695, "meta": 7105.0}];
+let data = JSON.parse(JSON.stringify(originalData));
+data.forEach(r => { r.edit2025 = Number(r.v2025)||0; r.edit2026 = Number(r.v2026)||0; });
+let selectedUnit = data[0]?.unidade || '';
+let sortMode = 'desc';
+let monthLocks = [false,false,false,false,false];
+let lockedMonthValues = {};
+const fmt = new Intl.NumberFormat('pt-BR', {maximumFractionDigits:0});
+const fmt2 = new Intl.NumberFormat('pt-BR', {maximumFractionDigits:2});
+const pct = v => isFinite(v) ? (v*100).toFixed(1).replace('.',',')+'%' : '0,0%';
+
+const grupoAzul = ['OPERAÇÕES','PAULO PALMEIRA','EDEN FERREIRA','AISLANE BELO','MARCUS PONTE','MARCUS PONTES'];
+function normTxt(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();}
+function isGrupoAzul(nome){const n=normTxt(nome);return grupoAzul.some(g=>n===normTxt(g) || n.includes(normTxt(g)));}
+function captacaoMeta(row){const meta=Number(row.meta)||0; return meta ? (Number(row.edit2026)||0)/meta : 0;}
+function projMeta(row){const meta=Number(row.meta)||0; return meta ? finalProjection(row)/meta : 0;}
+function setSortMode(mode){sortMode=mode;renderTable();}
+function closeUnitModal(){document.getElementById('unitModal').classList.remove('open');}
+function openUnitModal(){document.getElementById('unitModal').classList.add('open');}
+
+function businessDays(start, end){const days=[];let d=new Date(start+'T00:00:00');const e=new Date(end+'T00:00:00');while(d<=e){const wd=d.getDay();if(wd!==0&&wd!==6)days.push(new Date(d));d.setDate(d.getDate()+1)}return days}
+const baseDays = businessDays('2026-05-01','2026-05-31');
+const monthDefs = [
+  {key:'jun',label:'Junho',short:'Jun',days:businessDays('2026-06-01','2026-06-30')},
+  {key:'jul',label:'Julho',short:'Jul',days:businessDays('2026-07-01','2026-07-31')},
+  {key:'ago',label:'Agosto',short:'Ago',days:businessDays('2026-08-01','2026-08-31')},
+  {key:'set',label:'Setembro',short:'Set',days:businessDays('2026-09-01','2026-09-30')},
+  {key:'out',label:'Outubro',short:'Out',days:businessDays('2026-10-01','2026-10-30')}
+];
+const futureDays = monthDefs.flatMap(m=>m.days);
+document.getElementById('daysInfo').textContent = 'Base maio: '+baseDays.length+' dias úteis | Jun-out: '+futureDays.length+' dias úteis';
+function dailyRate(row){ return baseDays.length ? (Number(row.edit2026)||0)/baseDays.length : 0; }
+function monthProjection(row, idx){ let days=0; for(let i=0;i<=idx;i++) days += monthDefs[i].days.length; return (Number(row.edit2026)||0) + dailyRate(row)*days; }
+function finalProjection(row){ return getMonthValue(row, monthDefs.length-1); }
+
+function rawMonthProjection(row, idx){ let days=0; for(let i=0;i<=idx;i++) days += monthDefs[i].days.length; return (Number(row.edit2026)||0) + dailyRate(row)*days; }
+function monthKey(row, idx){ return row.unidade + '|' + idx; }
+function getMonthValue(row, idx){
+  const key = monthKey(row, idx);
+  if(monthLocks[idx] && lockedMonthValues[key] !== undefined) return lockedMonthValues[key];
+  return rawMonthProjection(row, idx);
+}
+function finalProjectionLocked(row){
+  if(monthLocks[monthDefs.length-1]) return getMonthValue(row, monthDefs.length-1);
+  return getMonthValue(row, monthDefs.length-1);
+}
+function refreshLockButtons(){
+  document.querySelectorAll('.lock-month').forEach(btn=>{
+    const idx=Number(btn.dataset.lock);
+    const lab=['Jun','Jul','Ago','Set','Out'][idx];
+    btn.textContent=(monthLocks[idx]?'🔒 ':'🔓 ')+lab;
+    btn.classList.toggle('locked', monthLocks[idx]);
+  });
+  const ths=document.querySelectorAll('#tbl thead th');
+  [5,6,7,8,9].forEach((thIndex,i)=>{ if(ths[thIndex]) ths[thIndex].classList.toggle('locked-col', monthLocks[i]); });
+}
+function toggleMonthLock(idx){
+  monthLocks[idx]=!monthLocks[idx];
+  if(monthLocks[idx]){
+    data.forEach(r=>{ lockedMonthValues[monthKey(r,idx)] = rawMonthProjection(r,idx); });
+  }else{
+    data.forEach(r=>{ delete lockedMonthValues[monthKey(r,idx)]; });
+  }
+  refreshLockButtons();
+  updateAll(true);
+}
+
+function sum(fn){return data.reduce((a,r)=>a+(Number(fn(r))||0),0)}
+function totals(){const t25=sum(r=>r.edit2025), t26=sum(r=>r.edit2026), tmeta=32681, proj=sum(r=>finalProjection(r));document.getElementById('k2025').textContent=fmt.format(t25);document.getElementById('k2026').textContent=fmt.format(t26);document.getElementById('kmeta').textContent=fmt.format(tmeta);document.getElementById('kproj').textContent=fmt.format(proj);const g=tmeta?proj/tmeta:0;const el=document.getElementById('kgrowth');el.textContent=pct(g);el.className='value '+(g>=1?'good':'bad');return{t25,t26,tmeta,proj,g}}
+function drawBars(canvasId, labels, values){const c=document.getElementById(canvasId),ctx=c.getContext('2d'),W=c.width,H=c.height;ctx.clearRect(0,0,W,H);const pad=62,base=H-58,top=28,max=Math.max(...values,1)*1.16;ctx.font='12px Arial';ctx.strokeStyle='#d9e2ef';ctx.lineWidth=1;for(let i=0;i<5;i++){const y=base-(base-top)*i/4;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-28,y);ctx.stroke();ctx.fillStyle='#667085';ctx.textAlign='right';ctx.fillText(fmt.format(max*i/4),pad-8,y+4)}const gap=17,bw=(W-pad-45-gap*(values.length-1))/values.length;values.forEach((v,i)=>{const h=(base-top)*(v/max),x=pad+i*(bw+gap),y=base-h;ctx.fillStyle=i<2?'#1f4e78':'#2c75ad';ctx.fillRect(x,y,bw,h);ctx.fillStyle='#152033';ctx.textAlign='center';ctx.fillText(fmt.format(v),x+bw/2,y-8);ctx.fillStyle='#667085';ctx.fillText(labels[i],x+bw/2,base+24)})}
+function drawTotal(){const t=totals();const labels=['25.2','26.2',...monthDefs.map(m=>m.short),'Final','Meta'];const values=[t.t25,t.t26,...monthDefs.map((m,i)=>sum(r=>getMonthValue(r,i))),t.proj,t.tmeta];drawBars('chartTotal',labels,values)}
+function drawTop(){const top=[...data].map(r=>({nome:r.unidade,proj:finalProjection(r)})).sort((a,b)=>b.proj-a.proj).slice(0,10);const c=document.getElementById('chartTop'),ctx=c.getContext('2d'),W=c.width,H=c.height;ctx.clearRect(0,0,W,H);const padL=240,padR=65,topPad=24,rowH=32,max=Math.max(...top.map(x=>x.proj),1);ctx.font='12px Arial';top.forEach((d,i)=>{const y=topPad+i*rowH;ctx.fillStyle='#152033';ctx.textAlign='right';ctx.fillText(d.nome.substring(0,32),padL-10,y+16);ctx.fillStyle='#1f4e78';ctx.fillRect(padL,y,(W-padL-padR)*(d.proj/max),20);ctx.fillStyle='#152033';ctx.textAlign='left';ctx.fillText(fmt.format(d.proj),padL+(W-padL-padR)*(d.proj/max)+8,y+15)})}
+function labelDate(d){return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}
+function drawUnitChart(row){
+const c=document.getElementById('chartUnit'),ctx=c.getContext('2d'),W=c.width,H=c.height;
+ctx.clearRect(0,0,W,H);if(!row)return;
+const init=Number(row.edit2026)||0, rate=dailyRate(row), meta=Number(row.meta)||0;
+const labels=['25.2','26.2',...monthDefs.map(m=>m.short),'Final'];
+const serie25=[Number(row.edit2025)||0,Number(row.edit2025)||0,...monthDefs.map(()=>Number(row.edit2025)||0),Number(row.edit2025)||0];
+const serie26=[null,init,...monthDefs.map((m,i)=>getMonthValue(row,i)),finalProjection(row)];
+const values=[...serie25.filter(v=>v!==null),...serie26.filter(v=>v!==null),meta];
+const padL=70,padR=40,top=36,base=H-68,max=Math.max(...values,1)*1.18;
+ctx.strokeStyle='#d9e2ef';ctx.lineWidth=1;ctx.font='12px Arial';
+for(let i=0;i<5;i++){const yy=base-(base-top)*i/4;ctx.beginPath();ctx.moveTo(padL,yy);ctx.lineTo(W-padR,yy);ctx.stroke();ctx.fillStyle='#667085';ctx.textAlign='right';ctx.fillText(fmt.format(max*i/4),padL-8,yy+4)}
+const y=v=>base-(base-top)*(v/max), x=i=>padL+(W-padL-padR)*(i/Math.max(labels.length-1,1));
+function drawLine(arr,color,dash=false){
+ctx.strokeStyle=color;ctx.lineWidth=3;ctx.setLineDash(dash?[7,5]:[]);
+ctx.beginPath();let started=false;
+arr.forEach((v,i)=>{if(v===null||v===undefined)return;if(!started){ctx.moveTo(x(i),y(v));started=true}else ctx.lineTo(x(i),y(v))});
+ctx.stroke();ctx.setLineDash([]);
+arr.forEach((v,i)=>{if(v===null||v===undefined)return;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x(i),y(v),4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#152033';ctx.textAlign='center';ctx.font='11px Arial';ctx.fillText(fmt.format(v),x(i),y(v)-10)});
+}
+drawLine(serie25,'#047857',true);
+drawLine(serie26,'#1f4e78',false);
+if(meta>0){ctx.strokeStyle='#b42318';ctx.setLineDash([5,4]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(padL,y(meta));ctx.lineTo(W-padR,y(meta));ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#b42318';ctx.textAlign='left';ctx.font='12px Arial';ctx.fillText('Meta: '+fmt.format(meta),padL+8,y(meta)-7)}
+ctx.fillStyle='#667085';ctx.textAlign='center';ctx.font='12px Arial';labels.forEach((lab,i)=>ctx.fillText(lab,x(i),base+26));
+ctx.fillStyle='#152033';ctx.textAlign='left';ctx.font='13px Arial';
+ctx.fillText('26.2 atual: '+fmt.format(init),padL,18);
+ctx.fillText('25.2: '+fmt.format(row.edit2025),padL+170,18);
+ctx.fillText('Projeção final: '+fmt.format(finalProjection(row)),padL+310,18);
+ctx.fillText('% meta: '+pct(projMeta(row)),padL+510,18);
+}
+function renderTable(){
+const q=document.getElementById('search').value.toLowerCase();
+const tbody=document.querySelector('#tbl tbody');tbody.innerHTML='';
+let rows=data.filter(r=>r.unidade.toLowerCase().includes(q));
+rows.sort((a,b)=>{
+  const ga=isGrupoAzul(a.unidade), gb=isGrupoAzul(b.unidade);
+  if(ga!==gb) return ga ? -1 : 1;
+  const pa=captacaoMeta(a), pb=captacaoMeta(b);
+  return sortMode==='asc' ? pa-pb : pb-pa;
+});
+rows.forEach(r=>{
+ const proj=finalProjection(r),meta=Number(r.meta)||0,growth=meta?proj/meta:0, cap=captacaoMeta(r);
+ const tr=document.createElement('tr');
+ if(r.unidade===selectedUnit)tr.classList.add('selected');
+ if(isGrupoAzul(r.unidade))tr.classList.add('grupo-azul');
+ tr.innerHTML=`<td>${r.unidade}</td>
+ <td><input class="editnum edit25" type="number" value="${Math.round(r.edit2025)}" data-unidade="${r.unidade}"></td>
+ <td><input class="editnum edit26" type="number" value="${Math.round(r.edit2026)}" data-unidade="${r.unidade}"></td>
+ <td class="${(r.edit2026-r.edit2025)>=0?'good':'bad'}">${fmt.format((Number(r.edit2026)||0)-(Number(r.edit2025)||0))}</td>
+ <td class="${((r.edit2026-r.edit2025)>=0)?'good':'bad'}">${r.edit2025?pct(((Number(r.edit2026)||0)-(Number(r.edit2025)||0))/(Number(r.edit2025)||1)):'0,0%'}</td>
+ ${monthDefs.map((m,i)=>`<td class="${monthLocks[i]?'locked-col':''}">${fmt.format(getMonthValue(r,i))}</td>`).join('')}
+ <td><strong>${fmt.format(meta)}</strong></td>
+ <td class="${cap>=1?'good':'bad'}"><strong>${pct(cap)}</strong></td>
+ <td><strong>${fmt.format(proj)}</strong></td>
+ <td class="${growth>=1?'good':'bad'}">${pct(growth)}</td>`;
+ tr.addEventListener('click',()=>{selectedUnit=r.unidade;updateUnitPanel();renderTable();openUnitModal();});
+ tbody.appendChild(tr)
+});
+document.querySelectorAll('.edit25,.edit26').forEach(inp=>inp.addEventListener('click',e=>e.stopPropagation()));
+document.querySelectorAll('.edit25,.edit26').forEach(inp=>inp.addEventListener('input',e=>{
+ const row=data.find(x=>x.unidade===e.target.dataset.unidade);if(!row)return;
+ if(e.target.classList.contains('edit25'))row.edit2025=Number(e.target.value)||0;else row.edit2026=Number(e.target.value)||0;
+ selectedUnit=row.unidade;updateAll(true)
+}))
+}
+function updateUnitPanel(){const row=data.find(r=>r.unidade===selectedUnit)||data[0];if(!row)return;document.getElementById('unitTitle').textContent='Projeção diária — '+row.unidade;document.getElementById('unitSummary').textContent='Meta 26.2: '+fmt.format(Number(row.meta)||0)+' | Base maio: '+baseDays.length+' dias úteis | Jun-out: '+futureDays.length+' dias úteis | Ritmo: '+fmt2.format(dailyRate(row))+' por dia útil';drawUnitChart(row)}
+function updateAll(redrawTable=false){drawTotal();drawTop();updateUnitPanel();if(redrawTable)renderTable()}
+function resetValues(){monthLocks=[false,false,false,false,false];lockedMonthValues={};refreshLockButtons();data=JSON.parse(JSON.stringify(originalData));data.forEach(r=>{r.edit2025=Number(r.v2025)||0;r.edit2026=Number(r.v2026)||0});selectedUnit=data[0]?.unidade||'';renderTable();updateAll(false)}
+document.getElementById('search').addEventListener('input',()=>renderTable());document.getElementById('unitModal').addEventListener('click',e=>{if(e.target.id==='unitModal')closeUnitModal()});refreshLockButtons();renderTable();updateAll(false);
+</script>
+
+
+
+
+<script id="consolidacao-v6-js">
+(function(){
+  const grupos = {
+    "PAULO PALMEIRA": [
+      "UNINASSAU - Graças",
+      "UNINASSAU - Campina Grande",
+      "UNINASSAU - Aracajú",
+      "UNINASSAU - São Luís",
+      "UNINASSAU - Paulista",
+      "UNINASSAU - Olinda",
+      "UNINASSAU - Cabo",
+      "UNINASSAU - Boa Viagem",
+      "UNINASSAU - Palmas",
+      "UNINASSAU - Brasília",
+      "UNINASSAU - Caxangá",
+      "UNINASSAU - Imperatriz",
+      "UNINASSAU - Carpina",
+      "UNINASSAU - Patos"
+    ],
+    "AISLANE BELO": [
+      "UNINASSAU - João Pessoa",
+      "UNINASSAU - Salvador",
+      "UNINASSAU - Maceió",
+      "UNINASSAU - Caruaru",
+      "UNINASSAU - Vitória da Conquista",
+      "UNINASSAU - Petrolina",
+      "UNINASSAU - Rio de Janeiro",
+      "UNINASSAU - Garanhuns",
+      "UNINASSAU - Sobral",
+      "UNINASSAU - Arapiraca",
+      "UNINASSAU - Serra Talhada",
+      "UNINASSAU - Barreiras",
+      "UNIFAEL - Curitiba",
+      "UNIFAEL - Porto Alegre",
+      "UNIFAEL - Lapa",
+      "UNIFAEL - Florianópolis"
+    ],
+    "EDEN FERREIRA": [
+      "UNAMA - Belém",
+      "UNAMA - Santarém",
+      "UNAMA - Marabá",
+      "UNAMA - Porto Velho",
+      "UNAMA - Boa Vista",
+      "UNAMA - Macapá",
+      "UNAMA - BR Ananindeua",
+      "UNAMA - Parque Shopping",
+      "UNAMA - Rio Branco",
+      "UNAMA - Castanhal",
+      "UNINASSAU - Cacoal",
+      "Faculdade Unesc/Unama",
+      "UNINASSAU - Vilhena",
+      "UNINORTE - Djalma Batista",
+      "UNINORTE - Cidade Nova",
+      "UNINORTE - Centro",
+      "UNINORTE - Zona Leste",
+      "UNAMA - Bragança"
+    ],
+    "MARCUS PONTE": [
+      "UNINASSAU - Natal",
+      "UNINASSAU - Fortaleza",
+      "UNINASSAU - Redenção (Aliança)",
+      "UNINASSAU - Teresina",
+      "UNINASSAU - Parnaíba",
+      "UNINASSAU - Parangaba",
+      "UNINASSAU - Maracanaú",
+      "UNINASSAU - Mossoró",
+      "UNINASSAU - Juazeiro"
+    ],
+    "OPERAÇÕES": [
+      "UNI7",
+      "UNG - Itaquaquecetuba",
+      "UNG - Guarulhos"
+    ]
+  };
+
+  function normaliza(s){
+    return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim();
+  }
+
+  function acharLinha(nome){
+    const alvo = normaliza(nome);
+    return data.find(r => normaliza(r.unidade) === alvo);
+  }
+
+  window.isConsolidador = function(nome){
+    const n = normaliza(nome);
+    return Object.keys(grupos).some(g => normaliza(g) === n || (n === "MARCUS PONTES" && normaliza(g)==="MARCUS PONTE"));
+  };
+
+  window.recalcularConsolidadores = function(){
+    Object.entries(grupos).forEach(([grupo, unidades]) => {
+      const linhaGrupo = acharLinha(grupo) || (grupo === "MARCUS PONTE" ? acharLinha("MARCUS PONTES") : null);
+      if(!linhaGrupo) return;
+
+      let soma25 = 0, soma26 = 0, somaMeta = 0;
+
+      unidades.forEach(nomeUnidade => {
+        const r = acharLinha(nomeUnidade);
+        if(!r) return;
+        soma25 += Number(r.edit2025)||0;
+        soma26 += Number(r.edit2026)||0;
+        somaMeta += Number(r.meta)||0;
+      });
+
+      linhaGrupo.edit2025 = soma25;
+      linhaGrupo.edit2026 = soma26;
+      linhaGrupo.v2025 = soma25;
+      linhaGrupo.v2026 = soma26;
+      linhaGrupo.meta = somaMeta;
+    });
+  };
+
+  // Guarda funções originais e empacota para recalcular antes de renderizar.
+  const oldRenderTable = window.renderTable;
+  const oldTotals = window.totals;
+  const oldUpdateAll = window.updateAll;
+  const oldResetValues = window.resetValues;
+
+  if(typeof oldRenderTable === "function"){
+    window.renderTable = function(){
+      recalcularConsolidadores();
+      oldRenderTable();
+      document.querySelectorAll("#tbl tbody tr").forEach(tr=>{
+        const nome = (tr.cells && tr.cells[0]) ? tr.cells[0].innerText : "";
+        if(isConsolidador(nome)){
+          tr.classList.add("consolidador","grupo-azul");
+          tr.querySelectorAll("input").forEach(inp => {
+            inp.readOnly = true;
+            inp.title = "Linha consolidada automaticamente pelas unidades vinculadas";
+          });
+        }
+      });
+    };
+  }
+
+  if(typeof oldTotals === "function"){
+    window.totals = function(){
+      recalcularConsolidadores();
+      return oldTotals();
+    };
+  }
+
+  if(typeof oldUpdateAll === "function"){
+    window.updateAll = function(redrawTable=false){
+      recalcularConsolidadores();
+      oldUpdateAll(redrawTable);
+    };
+  }
+
+  if(typeof oldResetValues === "function"){
+    window.resetValues = function(){
+      oldResetValues();
+      recalcularConsolidadores();
+      renderTable();
+      updateAll(false);
+    };
+  }
+
+  // Recalcula na primeira carga.
+  setTimeout(function(){
+    recalcularConsolidadores();
+    renderTable();
+    updateAll(false);
+  }, 50);
+})();
+</script>
+
+
+<script id="filtro-gestor-v7-js">
+(function(){
+const gruposFiltro={
+"PAULO PALMEIRA":["UNINASSAU - Graças","UNINASSAU - Campina Grande","UNINASSAU - Aracajú","UNINASSAU - São Luís","UNINASSAU - Paulista","UNINASSAU - Olinda","UNINASSAU - Cabo","UNINASSAU - Boa Viagem","UNINASSAU - Palmas","UNINASSAU - Brasília","UNINASSAU - Caxangá","UNINASSAU - Imperatriz","UNINASSAU - Carpina","UNINASSAU - Patos"],
+"AISLANE BELO":["UNINASSAU - João Pessoa","UNINASSAU - Salvador","UNINASSAU - Maceió","UNINASSAU - Caruaru","UNINASSAU - Vitória da Conquista","UNINASSAU - Petrolina","UNINASSAU - Rio de Janeiro","UNINASSAU - Garanhuns","UNINASSAU - Sobral","UNINASSAU - Arapiraca","UNINASSAU - Serra Talhada","UNINASSAU - Barreiras","UNIFAEL - Curitiba","UNIFAEL - Porto Alegre","UNIFAEL - Lapa","UNIFAEL - Florianópolis"],
+"EDEN FERREIRA":["UNAMA - Belém","UNAMA - Santarém","UNAMA - Marabá","UNAMA - Porto Velho","UNAMA - Boa Vista","UNAMA - Macapá","UNAMA - BR Ananindeua","UNAMA - Parque Shopping","UNAMA - Rio Branco","UNAMA - Castanhal","UNINASSAU - Cacoal","Faculdade Unesc/Unama","UNINASSAU - Vilhena","UNINORTE - Djalma Batista","UNINORTE - Cidade Nova","UNINORTE - Centro","UNINORTE - Zona Leste","UNAMA - Bragança"],
+"MARCUS PONTE":["UNINASSAU - Natal","UNINASSAU - Fortaleza","UNINASSAU - Redenção (Aliança)","UNINASSAU - Teresina","UNINASSAU - Parnaíba","UNINASSAU - Parangaba","UNINASSAU - Maracanaú","UNINASSAU - Mossoró","UNINASSAU - Juazeiro"],
+"OPERAÇÕES":["UNI7","UNG - Itaquaquecetuba","UNG - Guarulhos"]
+};
+let currentManager="TODOS", currentUnit="TODAS";
+function norm(s){return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim()}
+function isGestorRow(nome){const n=norm(nome);return Object.keys(gruposFiltro).some(g=>norm(g)===n||(n==="MARCUS PONTES"&&norm(g)==="MARCUS PONTE"))}
+function belongsToManager(row,gestor){if(gestor==="TODOS")return true;const lista=gruposFiltro[gestor]||[];return lista.some(u=>norm(u)===norm(row.unidade))||norm(row.unidade)===norm(gestor)||(gestor==="MARCUS PONTE"&&norm(row.unidade)==="MARCUS PONTES")}
+function calcRows(rows){const t25=rows.reduce((a,r)=>a+(Number(r.edit2025)||0),0),t26=rows.reduce((a,r)=>a+(Number(r.edit2026)||0),0),tmeta=rows.reduce((a,r)=>a+(Number(r.meta)||0),0),proj=rows.reduce((a,r)=>a+(Number(finalProjection(r))||0),0);return{t25,t26,tmeta,proj,g:tmeta?proj/tmeta:0}}
+function filteredRows(){let rows=data.filter(r=>belongsToManager(r,currentManager));if(currentManager!=="TODOS")rows=rows.filter(r=>!isGestorRow(r.unidade));if(currentUnit!=="TODAS")rows=rows.filter(r=>norm(r.unidade)===norm(currentUnit));const q=(document.getElementById("search")?.value||"").toLowerCase();if(q)rows=rows.filter(r=>r.unidade.toLowerCase().includes(q));return rows}
+window.updateManagerCards=function(){if(typeof recalcularConsolidadores==="function")recalcularConsolidadores();const rows=(currentManager==="TODOS"&&currentUnit==="TODAS")?data.filter(r=>!isGestorRow(r.unidade)):filteredRows();const t=calcRows(rows);const denom=(currentManager==="TODOS"&&currentUnit==="TODAS")?32681:t.tmeta;document.getElementById("k2025").textContent=fmt.format(t.t25);document.getElementById("k2026").textContent=fmt.format(t.t26);document.getElementById("kmeta").textContent=fmt.format(denom);document.getElementById("kproj").textContent=fmt.format(t.proj);const p=denom?t.proj/denom:0;const el=document.getElementById("kgrowth");el.textContent=pct(p);el.className="value "+(p>=1?"good":"bad");renderRankingGestores()};
+function fillUnitFilter(){const sel=document.getElementById("unitFilter");if(!sel)return;const old=currentUnit;sel.innerHTML='<option value="TODAS">Todas</option>';let rows=data.filter(r=>!isGestorRow(r.unidade)&&belongsToManager(r,currentManager));rows.sort((a,b)=>a.unidade.localeCompare(b.unidade,"pt-BR"));rows.forEach(r=>{const opt=document.createElement("option");opt.value=r.unidade;opt.textContent=r.unidade;sel.appendChild(opt)});currentUnit=rows.some(r=>norm(r.unidade)===norm(old))?old:"TODAS";sel.value=currentUnit}
+function renderRankingGestores(){const box=document.getElementById("rankingGestores");if(!box)return;box.innerHTML="";Object.keys(gruposFiltro).forEach(g=>{const rows=data.filter(r=>gruposFiltro[g].some(u=>norm(u)===norm(r.unidade)));const t=calcRows(rows);const percent=t.tmeta?t.proj/t.tmeta:0;const div=document.createElement("div");div.className="ranking-card"+(currentManager===g?" active":"");div.innerHTML=`<div class="ranking-name">${g==="MARCUS PONTE"?"MARCUS PONTES":g}</div><div class="ranking-pct ${percent>=1?"good":"bad"}">${pct(percent)}</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.min(percent*100,140)}%"></div></div><div class="ranking-small">Proj.: ${fmt.format(t.proj)} | Meta: ${fmt.format(t.tmeta)}<br>26.2 atual: ${fmt.format(t.t26)}</div>`;div.addEventListener("click",()=>{currentManager=g;currentUnit="TODAS";document.getElementById("managerFilter").value=g;fillUnitFilter();renderTable();updateManagerCards()});box.appendChild(div)})}
+window.renderTable=function(){if(typeof recalcularConsolidadores==="function")recalcularConsolidadores();const tbody=document.querySelector("#tbl tbody");if(!tbody)return;tbody.innerHTML="";let rows=filteredRows();rows.sort((a,b)=>{const ga=isGrupoAzul(a.unidade),gb=isGrupoAzul(b.unidade);if(currentManager==="TODOS"&&ga!==gb)return ga?-1:1;const pa=captacaoMeta(a),pb=captacaoMeta(b);return sortMode==="asc"?pa-pb:pb-pa});rows.forEach(r=>{const proj=finalProjection(r),meta=Number(r.meta)||0,growth=meta?proj/meta:0,cap=captacaoMeta(r);const tr=document.createElement("tr");if(r.unidade===selectedUnit)tr.classList.add("selected");if(isGrupoAzul(r.unidade))tr.classList.add("grupo-azul");if(isGestorRow(r.unidade))tr.classList.add("consolidador","grupo-azul");tr.innerHTML=`<td>${r.unidade}</td><td><input class="editnum edit25" type="number" value="${Math.round(r.edit2025)}" data-unidade="${r.unidade}" ${isGestorRow(r.unidade)?"readonly":""}></td><td><input class="editnum edit26" type="number" value="${Math.round(r.edit2026)}" data-unidade="${r.unidade}" ${isGestorRow(r.unidade)?"readonly":""}></td><td class="${(r.edit2026-r.edit2025)>=0?"good":"bad"}">${fmt.format((Number(r.edit2026)||0)-(Number(r.edit2025)||0))}</td><td class="${((r.edit2026-r.edit2025)>=0)?"good":"bad"}">${r.edit2025?pct(((Number(r.edit2026)||0)-(Number(r.edit2025)||0))/(Number(r.edit2025)||1)):"0,0%"}</td>${monthDefs.map((m,i)=>`<td class="${monthLocks[i]?"locked-col":""}">${fmt.format(getMonthValue(r,i))}</td>`).join("")}<td><strong>${fmt.format(meta)}</strong></td><td class="${cap>=1?"good":"bad"}"><strong>${pct(cap)}</strong></td><td><strong>${fmt.format(proj)}</strong></td><td class="${growth>=1?"good":"bad"}">${pct(growth)}</td>`;tr.addEventListener("click",()=>{selectedUnit=r.unidade;updateUnitPanel();renderTable();openUnitModal()});tbody.appendChild(tr)});
+document.querySelectorAll(".edit25,.edit26").forEach(inp=>inp.addEventListener("click",e=>e.stopPropagation()));
+document.querySelectorAll(".edit25,.edit26").forEach(inp=>inp.addEventListener("input",e=>{const row=data.find(x=>x.unidade===e.target.dataset.unidade);if(!row||isGestorRow(row.unidade))return;if(e.target.classList.contains("edit25"))row.edit2025=Number(e.target.value)||0;else row.edit2026=Number(e.target.value)||0;selectedUnit=row.unidade;if(typeof recalcularConsolidadores==="function")recalcularConsolidadores();renderTable();updateManagerCards()}));
+updateManagerCards()};
+const oldTotalsV7=window.totals;window.totals=function(){updateManagerCards();const rows=(currentManager==="TODOS"&&currentUnit==="TODAS")?data.filter(r=>!isGestorRow(r.unidade)):filteredRows();return calcRows(rows)};
+const oldResetV7=window.resetValues;window.resetValues=function(){oldResetV7();currentManager="TODOS";currentUnit="TODAS";document.getElementById("managerFilter").value="TODOS";fillUnitFilter();renderTable();updateManagerCards()};
+function initFilters(){const mf=document.getElementById("managerFilter"),uf=document.getElementById("unitFilter");if(!mf||!uf)return;mf.addEventListener("change",()=>{currentManager=mf.value;currentUnit="TODAS";fillUnitFilter();renderTable();updateManagerCards()});uf.addEventListener("change",()=>{currentUnit=uf.value;renderTable();updateManagerCards()});fillUnitFilter();renderRankingGestores();renderTable();updateManagerCards()}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initFilters);else setTimeout(initFilters,80);
+})();
+</script>
+
+
+<script id="pesos-projecao-v8-js">
+(function(){
+  window.monthWeights = [0.8, 1.4, 1.2, 0.9, 0.7];
+
+  function getWeightInputs(){
+    return [
+      document.getElementById("wJun"),
+      document.getElementById("wJul"),
+      document.getElementById("wAgo"),
+      document.getElementById("wSet"),
+      document.getElementById("wOut")
+    ];
+  }
+
+  window.updateMonthWeights = function(){
+    const inputs = getWeightInputs();
+    window.monthWeights = inputs.map((inp, i) => {
+      const v = Number(inp && inp.value);
+      return isFinite(v) && v >= 0 ? v : [0.8,1.4,1.2,0.9,0.7][i];
+    });
+  };
+
+  window.rawMonthProjection = function(row, idx){
+    updateMonthWeights();
+    let weightedDays = 0;
+    for(let i=0;i<=idx;i++){
+      weightedDays += monthDefs[i].days.length * (window.monthWeights[i] || 0);
+    }
+    return (Number(row.edit2026)||0) + dailyRate(row) * weightedDays;
+  };
+
+  function bindWeights(){
+    getWeightInputs().forEach(inp=>{
+      if(!inp || inp.dataset.boundPeso) return;
+      inp.dataset.boundPeso = "1";
+      inp.addEventListener("input", ()=>{
+        updateMonthWeights();
+        updateAll(true);
+        if(typeof updateManagerCards === "function") updateManagerCards();
+      });
+    });
+  }
+
+  // Ajusta textos explicativos
+  const headerP = document.querySelector("header p");
+  if(headerP){
+    headerP.innerHTML = 'Projeção iniciando em <strong>junho</strong> e seguindo até <strong>outubro/2026</strong>, calculada pelo ritmo atual de 26.2 com <strong>pesos mensais</strong>. Considera apenas dias úteis, de segunda a sexta. As colunas <strong>25.2</strong> e <strong>26.2</strong> são editáveis. A projeção final é comparada com a <strong>Meta Geral 2026.2</strong>.';
+  }
+
+  bindWeights();
+  updateMonthWeights();
+  setTimeout(()=>{bindWeights(); updateAll(true); if(typeof updateManagerCards==="function") updateManagerCards();}, 100);
+})();
+</script>
+
+<div id="saveStatus" class="save-status">Conectando ao Firebase...</div>
+
+<script type="module" id="firebase-v9-js">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAOVJIo1-I3KcYvg0zvGw6Hg4HB8LKpcx4",
+  authDomain: "capta-2ebc0.firebaseapp.com",
+  projectId: "capta-2ebc0",
+  storageBucket: "capta-2ebc0.firebasestorage.app",
+  messagingSenderId: "58347402048",
+  appId: "1:58347402048:web:7b4e0fb695b4b8fa0700a5",
+  measurementId: "G-NDJ62HF7K7"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const painelRef = doc(db, "captacao", "painel_26_2");
+
+let firebaseReady = false;
+let saveTimer = null;
+let loadingFirebase = false;
+
+function setStatus(text, type=""){
+  const el = document.getElementById("saveStatus");
+  if(!el) return;
+  el.textContent = text;
+  el.className = "save-status" + (type ? " " + type : "");
+}
+
+function snapshotPainel(){
+  return {
+    data: window.data || data,
+    monthLocks: window.monthLocks || monthLocks,
+    lockedMonthValues: window.lockedMonthValues || lockedMonthValues,
+    monthWeights: window.monthWeights || [0.8,1.4,1.2,0.9,0.7],
+    updatedAt: serverTimestamp()
+  };
+}
+
+window.saveToFirebaseNow = async function(){
+  if(!firebaseReady || loadingFirebase) return;
+  try{
+    setStatus("Salvando...");
+    await setDoc(painelRef, snapshotPainel(), { merge:true });
+    setStatus("Salvo na nuvem", "ok");
+  }catch(err){
+    console.error("Erro ao salvar no Firebase:", err);
+    setStatus("Erro ao salvar", "err");
+  }
+};
+
+window.scheduleFirebaseSave = function(){
+  if(!firebaseReady || loadingFirebase) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>window.saveToFirebaseNow(), 700);
+};
+
+window.loadFromFirebase = async function(){
+  loadingFirebase = true;
+  try{
+    setStatus("Carregando dados...");
+    const snap = await getDoc(painelRef);
+
+    if(snap.exists()){
+      const saved = snap.data();
+
+      if(Array.isArray(saved.data)){
+        data.length = 0;
+        saved.data.forEach(item => data.push(item));
+        window.data = data;
+      }
+
+      if(Array.isArray(saved.monthLocks)){
+        monthLocks = saved.monthLocks;
+        window.monthLocks = monthLocks;
+      }
+
+      if(saved.lockedMonthValues && typeof saved.lockedMonthValues === "object"){
+        lockedMonthValues = saved.lockedMonthValues;
+        window.lockedMonthValues = lockedMonthValues;
+      }
+
+      if(Array.isArray(saved.monthWeights)){
+        window.monthWeights = saved.monthWeights;
+        const ids = ["wJun","wJul","wAgo","wSet","wOut"];
+        ids.forEach((id,i)=>{
+          const el = document.getElementById(id);
+          if(el) el.value = saved.monthWeights[i];
+        });
+        if(typeof updateMonthWeights === "function") updateMonthWeights();
+      }
+    }else{
+      await setDoc(painelRef, snapshotPainel(), { merge:true });
+    }
+
+    if(typeof recalcularConsolidadores === "function") recalcularConsolidadores();
+    if(typeof refreshLockButtons === "function") refreshLockButtons();
+    if(typeof renderTable === "function") renderTable();
+    if(typeof updateAll === "function") updateAll(true);
+    if(typeof updateManagerCards === "function") updateManagerCards();
+
+    firebaseReady = true;
+    setStatus("Salvo na nuvem", "ok");
+  }catch(err){
+    console.error("Erro ao carregar Firebase:", err);
+    setStatus("Erro Firebase", "err");
+  }finally{
+    loadingFirebase = false;
+  }
+};
+
+function wrapFunction(name){
+  const original = window[name];
+  if(typeof original !== "function" || original.__firebaseWrapped) return;
+  const wrapped = function(...args){
+    const result = original.apply(this, args);
+    window.scheduleFirebaseSave();
+    return result;
+  };
+  wrapped.__firebaseWrapped = true;
+  window[name] = wrapped;
+}
+
+setTimeout(()=>{
+  wrapFunction("toggleMonthLock");
+  wrapFunction("resetValues");
+  wrapFunction("setSortMode");
+
+  document.addEventListener("input", (e)=>{
+    if(e.target && (
+      e.target.classList.contains("edit25") ||
+      e.target.classList.contains("edit26") ||
+      ["wJun","wJul","wAgo","wSet","wOut"].includes(e.target.id)
+    )){
+      window.scheduleFirebaseSave();
+    }
+  });
+
+  window.loadFromFirebase();
+}, 700);
+</script>
+
+</body></html>
