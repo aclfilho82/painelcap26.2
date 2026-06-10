@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Projeção de Captação 26.2 — Com Firebase</title>
+<title>Projeção de Captação 26.2 — Com Firebase + LocalStorage</title>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -203,7 +203,7 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
   right: 20px;
   background: #1f4e78;
   color: white;
-  padding: 8px 16px;
+  padding: 10px 20px;
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -213,19 +213,30 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
   pointer-events: none;
 }
 
-.save-status.show {
-  opacity: 1;
-}
-
+.save-status.show { opacity: 1; }
 .save-status.success { background: #059669; }
 .save-status.error { background: #dc2626; }
+.save-status.warning { background: #ea580c; }
+
+.storage-badge {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: #1f4e78;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  z-index: 1000;
+  cursor: pointer;
+}
 </style>
 </head>
 <body>
 
 <header class="header">
-  <h1>Projeção de Captação 26.2 <span class="method-badge">Com Firebase</span></h1>
-  <p>Captação MAIO é fixa. Edite a coluna ATUAL para simular cenários. Os dados são salvos automaticamente.</p>
+  <h1>Projeção de Captação 26.2 <span class="method-badge">Com Salvamento</span></h1>
+  <p>Captação MAIO é fixa. Edite a coluna ATUAL. Os dados são salvos automaticamente no seu navegador.</p>
 </header>
 
 <div class="container">
@@ -315,6 +326,7 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
 </div>
 
 <div id="saveStatus" class="save-status">✅ Salvo!</div>
+<div id="storageBadge" class="storage-badge">💾 Salvando localmente</div>
 
 <script type="module">
 // ============================================================
@@ -333,8 +345,21 @@ const firebaseConfig = {
   appId: "1:607702438115:web:fd87adcfc10ed4de74f5d6"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+let app, db;
+let firebaseDisponivel = false;
+
+try {
+  app = initializeApp(firebaseConfig);
+  db = getDatabase(app);
+  firebaseDisponivel = true;
+  console.log('✅ Firebase conectado');
+  document.getElementById('storageBadge').innerHTML = '☁️ Salvando na nuvem (Firebase)';
+  document.getElementById('storageBadge').style.background = '#059669';
+} catch (error) {
+  console.warn('⚠️ Firebase não disponível, usando LocalStorage:', error);
+  document.getElementById('storageBadge').innerHTML = '💾 Salvando localmente (navegador)';
+  document.getElementById('storageBadge').style.background = '#ea580c';
+}
 
 // ============================================================
 // DADOS HISTÓRICOS ACUMULADOS
@@ -345,7 +370,6 @@ const historicalAcc = {
   2025: { MAIO: 1913, JUNHO: 4516, JULHO: 12115, AGOSTO: 20427, SETEMBRO: 24891, OUTUBRO: 26976 }
 };
 
-// Médias dos acumulados
 const avgAcc = {
   MAIO: (historicalAcc[2023].MAIO + historicalAcc[2024].MAIO + historicalAcc[2025].MAIO) / 3,
   JUNHO: (historicalAcc[2023].JUNHO + historicalAcc[2024].JUNHO + historicalAcc[2025].JUNHO) / 3,
@@ -355,7 +379,6 @@ const avgAcc = {
   OUTUBRO: (historicalAcc[2023].OUTUBRO + historicalAcc[2024].OUTUBRO + historicalAcc[2025].OUTUBRO) / 3
 };
 
-// INCREMENTOS MENSAIS
 const avgIncrements = {
   MAIO: avgAcc.MAIO,
   JUNHO: avgAcc.JUNHO - avgAcc.MAIO,
@@ -365,7 +388,6 @@ const avgIncrements = {
   OUTUBRO: avgAcc.OUTUBRO - avgAcc.SETEMBRO
 };
 
-// FATORES SAZONAIS
 const seasonalFactors = {
   JUN: avgIncrements.JUNHO / avgIncrements.MAIO,
   JUL: avgIncrements.JULHO / avgIncrements.MAIO,
@@ -382,9 +404,6 @@ document.getElementById('fatoresDisplay').innerHTML = `
   OUT: ${seasonalFactors.OUT.toFixed(3)}x
 `;
 
-// ============================================================
-// FUNÇÃO DE PROJEÇÃO
-// ============================================================
 function getProjection(mayValue, meta = null) {
   let incJun = mayValue * seasonalFactors.JUN;
   let incJul = mayValue * seasonalFactors.JUL;
@@ -416,7 +435,7 @@ function getFinalProjection(mayValue, meta = null) {
 }
 
 // ============================================================
-// DADOS DAS UNIDADES (MAIO É FIXO)
+// DADOS DAS UNIDADES
 // ============================================================
 const unidadesData = [
   {unidade: "UNINASSAU - Graças", gestor: "PAULO PALMEIRA", maio2026: 74, atual2026: 106, meta: 2123},
@@ -497,68 +516,100 @@ let sortMode = 'desc';
 const fmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const pct = v => isFinite(v) ? (v * 100).toFixed(1).replace('.', ',') + '%' : '0,0%';
 
-// ============================================================
-// FUNÇÕES DE SALVAMENTO NO FIREBASE
-// ============================================================
-function showSaveStatus(message, isError = false) {
+function showSaveStatus(message, isError = false, isWarning = false) {
   const statusDiv = document.getElementById('saveStatus');
   statusDiv.textContent = message;
-  statusDiv.className = `save-status show ${isError ? 'error' : 'success'}`;
-  setTimeout(() => {
-    statusDiv.classList.remove('show');
-  }, 2000);
+  statusDiv.className = `save-status show`;
+  if (isError) statusDiv.classList.add('error');
+  else if (isWarning) statusDiv.classList.add('warning');
+  else statusDiv.classList.add('success');
+  setTimeout(() => statusDiv.classList.remove('show'), 2000);
 }
 
-async function salvarDadosFirebase() {
-  try {
-    const unidadesParaSalvar = data.filter(r => r.gestor !== 'CONSOLIDADO');
-    const dadosParaSalvar = {};
-    unidadesParaSalvar.forEach(r => {
-      dadosParaSalvar[r.unidade] = {
-        atual2026: r.atual2026,
-        maio2026: r.maio2026,
-        meta: r.meta,
-        gestor: r.gestor
-      };
-    });
-    
-    await set(ref(db, 'captacoes/2026.2'), dadosParaSalvar);
-    showSaveStatus('✅ Dados salvos com sucesso!');
-  } catch (error) {
-    console.error('Erro ao salvar:', error);
-    showSaveStatus('❌ Erro ao salvar', true);
-  }
-}
-
-async function carregarDadosFirebase() {
-  try {
-    const dbRef = ref(db);
-    const snapshot = await get(child(dbRef, 'captacoes/2026.2'));
-    
-    if (snapshot.exists()) {
-      const dadosSalvos = snapshot.val();
-      
-      data.forEach(item => {
-        if (item.gestor !== 'CONSOLIDADO' && dadosSalvos[item.unidade]) {
-          item.atual2026 = dadosSalvos[item.unidade].atual2026;
-        }
-      });
-      
-      showSaveStatus('📥 Dados carregados do Firebase');
-    } else {
-      console.log('Nenhum dado salvo encontrado');
+// ============================================================
+// SALVAMENTO (Firebase + LocalStorage fallback)
+// ============================================================
+async function salvarDados() {
+  const unidadesParaSalvar = data.filter(r => r.gestor !== 'CONSOLIDADO');
+  const dadosParaSalvar = {};
+  unidadesParaSalvar.forEach(r => {
+    dadosParaSalvar[r.unidade] = {
+      atual2026: r.atual2026,
+      maio2026: r.maio2026,
+      meta: r.meta,
+      gestor: r.gestor
+    };
+  });
+  
+  // Sempre salvar no LocalStorage como backup
+  localStorage.setItem('captacao_2026_2', JSON.stringify(dadosParaSalvar));
+  
+  // Tentar salvar no Firebase se disponível
+  if (firebaseDisponivel && db) {
+    try {
+      await set(ref(db, 'captacoes/2026.2'), dadosParaSalvar);
+      showSaveStatus('✅ Salvo na nuvem (Firebase)');
+      document.getElementById('storageBadge').innerHTML = '☁️ Salvando na nuvem (Firebase)';
+      document.getElementById('storageBadge').style.background = '#059669';
+    } catch (error) {
+      console.error('Erro Firebase:', error);
+      showSaveStatus('⚠️ Salvo apenas localmente (Firebase offline)', false, true);
+      document.getElementById('storageBadge').innerHTML = '💾 Salvando localmente (navegador)';
+      document.getElementById('storageBadge').style.background = '#ea580c';
     }
-  } catch (error) {
-    console.error('Erro ao carregar:', error);
+  } else {
+    showSaveStatus('💾 Salvo localmente (navegador)');
+    document.getElementById('storageBadge').innerHTML = '💾 Salvando localmente (navegador)';
+    document.getElementById('storageBadge').style.background = '#ea580c';
   }
-  renderTable();
-  calcularTotaisGerais();
-  updateManagerCards();
 }
 
-// ============================================================
-// FUNÇÕES DA UI
-// ============================================================
+async function carregarDados() {
+  // Primeiro tentar carregar do LocalStorage
+  const localData = localStorage.getItem('captacao_2026_2');
+  let dadosCarregados = false;
+  
+  if (localData) {
+    const dadosSalvos = JSON.parse(localData);
+    data.forEach(item => {
+      if (item.gestor !== 'CONSOLIDADO' && dadosSalvos[item.unidade]) {
+        item.atual2026 = dadosSalvos[item.unidade].atual2026;
+      }
+    });
+    dadosCarregados = true;
+    showSaveStatus('📥 Dados carregados do navegador');
+  }
+  
+  // Tentar carregar do Firebase e sobrescrever se tiver dados mais recentes
+  if (firebaseDisponivel && db) {
+    try {
+      const dbRef = ref(db);
+      const snapshot = await get(child(dbRef, 'captacoes/2026.2'));
+      if (snapshot.exists()) {
+        const dadosSalvos = snapshot.val();
+        data.forEach(item => {
+          if (item.gestor !== 'CONSOLIDADO' && dadosSalvos[item.unidade]) {
+            item.atual2026 = dadosSalvos[item.unidade].atual2026;
+          }
+        });
+        showSaveStatus('☁️ Dados carregados da nuvem (Firebase)');
+        document.getElementById('storageBadge').innerHTML = '☁️ Salvando na nuvem (Firebase)';
+        document.getElementById('storageBadge').style.background = '#059669';
+        dadosCarregados = true;
+      }
+    } catch (error) {
+      console.warn('Erro ao carregar do Firebase:', error);
+      if (!dadosCarregados) {
+        showSaveStatus('📥 Usando dados locais (Firebase offline)', false, true);
+      }
+    }
+  }
+  
+  if (!dadosCarregados) {
+    showSaveStatus('📥 Usando dados padrão');
+  }
+}
+
 function getProjecaoRow(row) { return getProjection(row.maio2026, row.meta); }
 function getFinalProjectionForRow(row) { return getFinalProjection(row.maio2026, row.meta); }
 function getCurrentPct(row) { return row.meta ? row.atual2026 / row.meta : 0; }
@@ -728,7 +779,7 @@ function renderTable() {
         renderTable();
         calcularTotaisGerais();
         updateManagerCards();
-        await salvarDadosFirebase();
+        await salvarDados();
       }
     });
   });
@@ -745,7 +796,7 @@ function resetValues() {
   renderTable();
   calcularTotaisGerais();
   updateManagerCards();
-  salvarDadosFirebase();
+  salvarDados();
 }
 
 function setSortMode(mode) { sortMode = mode; renderTable(); }
@@ -829,7 +880,7 @@ function filterByManager(gestor) {
         row.atual2026 = Number(e.target.value) || 0;
         filterByManager(gestor);
         calcularTotaisGerais();
-        await salvarDadosFirebase();
+        await salvarDados();
       }
     });
   });
@@ -890,7 +941,7 @@ function initFilters() {
 
 // Inicialização
 setTimeout(async () => {
-  await carregarDadosFirebase();
+  await carregarDados();
   initFilters();
 }, 50);
 </script>
