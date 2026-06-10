@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Projeção de Captação 26.2 — Modelo Corrigido com Teto</title>
+<title>Projeção de Captação 26.2 — Com Firebase</title>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -145,6 +145,7 @@ body {
 .data-table tr.gestor-row td input { background: rgba(255,255,255,0.2); color: white; }
 
 .edit-num { width: 80px; padding: 0.375rem; border: 1px solid var(--line); border-radius: 0.5rem; text-align: right; font-weight: 600; background: #fef3c7; }
+.edit-num-fixo { width: 80px; padding: 0.375rem; border: 1px solid var(--line); border-radius: 0.5rem; text-align: right; font-weight: 600; background: #e5e7eb; color: #6b7280; }
 .good-text { color: #059669; font-weight: 700; }
 .bad-text { color: #dc2626; font-weight: 700; }
 
@@ -195,13 +196,36 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
   font-size: 0.75rem;
   font-weight: 600;
 }
+
+.save-status {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #1f4e78;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.save-status.show {
+  opacity: 1;
+}
+
+.save-status.success { background: #059669; }
+.save-status.error { background: #dc2626; }
 </style>
 </head>
 <body>
 
 <header class="header">
-  <h1>Projeção de Captação 26.2 <span class="method-badge">Modelo Corrigido com Teto pela Meta</span></h1>
-  <p>Projeção baseada nos incrementos históricos, limitada a no máximo 110% da meta para evitar projeções irreais.</p>
+  <h1>Projeção de Captação 26.2 <span class="method-badge">Com Firebase</span></h1>
+  <p>Captação MAIO é fixa. Edite a coluna ATUAL para simular cenários. Os dados são salvos automaticamente.</p>
 </header>
 
 <div class="container">
@@ -215,7 +239,7 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
   </div>
 
   <div class="stats-grid">
-    <div class="stat-card"><div class="stat-label">Captação MAIO/2026</div><div class="stat-value" id="k2026maio">0</div></div>
+    <div class="stat-card"><div class="stat-label">Captação MAIO/2026 (fixa)</div><div class="stat-value" id="k2026maio">0</div></div>
     <div class="stat-card"><div class="stat-label">Captação ATUAL (acumulada)</div><div class="stat-value" id="k2026atual">0</div></div>
     <div class="stat-card"><div class="stat-label">Meta Geral 2026.2</div><div class="stat-value" id="kmeta">32.681</div></div>
     <div class="stat-card"><div class="stat-label">Projeção até OUT/26</div><div class="stat-value" id="kproj">0</div></div>
@@ -226,7 +250,7 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
     <div class="panel-header">
       <div class="panel-title">
         Unidades 
-        <div class="note">Clique na unidade para ver o gráfico. Edite os valores de MAIO para simular cenários.</div>
+        <div class="note">Clique na unidade para ver o gráfico. MAIO é fixo. Edite ATUAL para simular.</div>
       </div>
       <div class="toolbar">
         <input type="text" id="search" class="search-input" placeholder="Pesquisar unidade...">
@@ -258,8 +282,8 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
           <tr>
             <th>Unidade</th>
             <th>Gestor</th>
-            <th>Captação<br>MAIO/26</th>
-            <th>Captação<br>ATUAL</th>
+            <th>Captação<br>MAIO/26<br><span style="font-weight:normal;">(fixo)</span></th>
+            <th>Captação<br>ATUAL<br><span style="font-weight:normal;">(editável)</span></th>
             <th>Proj. JUN</th>
             <th>Proj. JUL</th>
             <th>Proj. AGO</th>
@@ -290,7 +314,28 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
   </div>
 </div>
 
-<script>
+<div id="saveStatus" class="save-status">✅ Salvo!</div>
+
+<script type="module">
+// ============================================================
+// FIREBASE CONFIGURAÇÃO
+// ============================================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD4cS-Y6N-mX2TTuu_YVFpxv35LrT6XPqQ",
+  authDomain: "capt26-2.firebaseapp.com",
+  databaseURL: "https://capt26-2-default-rtdb.firebaseio.com",
+  projectId: "capt26-2",
+  storageBucket: "capt26-2.firebasestorage.app",
+  messagingSenderId: "607702438115",
+  appId: "1:607702438115:web:fd87adcfc10ed4de74f5d6"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
 // ============================================================
 // DADOS HISTÓRICOS ACUMULADOS
 // ============================================================
@@ -310,7 +355,7 @@ const avgAcc = {
   OUTUBRO: (historicalAcc[2023].OUTUBRO + historicalAcc[2024].OUTUBRO + historicalAcc[2025].OUTUBRO) / 3
 };
 
-// INCREMENTOS MENSAIS (quanto cada mês CAPTOU de fato)
+// INCREMENTOS MENSAIS
 const avgIncrements = {
   MAIO: avgAcc.MAIO,
   JUNHO: avgAcc.JUNHO - avgAcc.MAIO,
@@ -320,18 +365,15 @@ const avgIncrements = {
   OUTUBRO: avgAcc.OUTUBRO - avgAcc.SETEMBRO
 };
 
-// ============================================================
-// FATORES SAZONAIS (baseado no incremento de MAIO)
-// ============================================================
+// FATORES SAZONAIS
 const seasonalFactors = {
-  JUN: avgIncrements.JUNHO / avgIncrements.MAIO,    // 3.192 / 2.001 = 1.595
-  JUL: avgIncrements.JULHO / avgIncrements.MAIO,    // 6.918 / 2.001 = 3.457
-  AGO: avgIncrements.AGOSTO / avgIncrements.MAIO,   // 9.262 / 2.001 = 4.628
-  SET: avgIncrements.SETEMBRO / avgIncrements.MAIO, // 4.185 / 2.001 = 2.091
-  OUT: avgIncrements.OUTUBRO / avgIncrements.MAIO   // 2.127 / 2.001 = 1.063
+  JUN: avgIncrements.JUNHO / avgIncrements.MAIO,
+  JUL: avgIncrements.JULHO / avgIncrements.MAIO,
+  AGO: avgIncrements.AGOSTO / avgIncrements.MAIO,
+  SET: avgIncrements.SETEMBRO / avgIncrements.MAIO,
+  OUT: avgIncrements.OUTUBRO / avgIncrements.MAIO
 };
 
-// Exibir fatores
 document.getElementById('fatoresDisplay').innerHTML = `
   JUN: ${seasonalFactors.JUN.toFixed(3)}x | 
   JUL: ${seasonalFactors.JUL.toFixed(3)}x | 
@@ -341,24 +383,21 @@ document.getElementById('fatoresDisplay').innerHTML = `
 `;
 
 // ============================================================
-// FUNÇÃO DE PROJEÇÃO CORRETA COM TETO PELA META
+// FUNÇÃO DE PROJEÇÃO
 // ============================================================
 function getProjection(mayValue, meta = null) {
-  // Incrementos projetados
   let incJun = mayValue * seasonalFactors.JUN;
   let incJul = mayValue * seasonalFactors.JUL;
   let incAgo = mayValue * seasonalFactors.AGO;
   let incSet = mayValue * seasonalFactors.SET;
   let incOut = mayValue * seasonalFactors.OUT;
   
-  // Acumulados
   let jun = mayValue + incJun;
   let jul = jun + incJul;
   let ago = jul + incAgo;
   let set = ago + incSet;
   let out = set + incOut;
   
-  // Se tiver meta, aplica teto de 105% da meta (evita projeções irreais)
   if (meta && meta > 0) {
     const teto = meta * 1.05;
     if (jun > teto) jun = teto;
@@ -377,7 +416,7 @@ function getFinalProjection(mayValue, meta = null) {
 }
 
 // ============================================================
-// DADOS DAS UNIDADES
+// DADOS DAS UNIDADES (MAIO É FIXO)
 // ============================================================
 const unidadesData = [
   {unidade: "UNINASSAU - Graças", gestor: "PAULO PALMEIRA", maio2026: 74, atual2026: 106, meta: 2123},
@@ -442,7 +481,6 @@ const unidadesData = [
   {unidade: "UNIFAEL - Florianópolis", gestor: "AISLANE BELO", maio2026: 9, atual2026: 16, meta: 111}
 ];
 
-// Adicionar linhas dos gestores (consolidadas)
 const gestoresResumo = [
   {unidade: "📊 OPERAÇÕES", gestor: "CONSOLIDADO", maio2026: 178, atual2026: 245, meta: 1930},
   {unidade: "📊 PAULO PALMEIRA", gestor: "CONSOLIDADO", maio2026: 579, atual2026: 773, meta: 8346},
@@ -454,23 +492,77 @@ const gestoresResumo = [
 const allData = [...unidadesData, ...gestoresResumo];
 
 let data = JSON.parse(JSON.stringify(allData));
-data.forEach(r => { 
-  r.maio2026 = Number(r.maio2026) || 0;
-  r.atual2026 = Number(r.atual2026) || 0;
-  r.meta = Number(r.meta) || 0;
-});
-
 let selectedUnit = data[0]?.unidade || '';
 let sortMode = 'desc';
 const fmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const pct = v => isFinite(v) ? (v * 100).toFixed(1).replace('.', ',') + '%' : '0,0%';
 
+// ============================================================
+// FUNÇÕES DE SALVAMENTO NO FIREBASE
+// ============================================================
+function showSaveStatus(message, isError = false) {
+  const statusDiv = document.getElementById('saveStatus');
+  statusDiv.textContent = message;
+  statusDiv.className = `save-status show ${isError ? 'error' : 'success'}`;
+  setTimeout(() => {
+    statusDiv.classList.remove('show');
+  }, 2000);
+}
+
+async function salvarDadosFirebase() {
+  try {
+    const unidadesParaSalvar = data.filter(r => r.gestor !== 'CONSOLIDADO');
+    const dadosParaSalvar = {};
+    unidadesParaSalvar.forEach(r => {
+      dadosParaSalvar[r.unidade] = {
+        atual2026: r.atual2026,
+        maio2026: r.maio2026,
+        meta: r.meta,
+        gestor: r.gestor
+      };
+    });
+    
+    await set(ref(db, 'captacoes/2026.2'), dadosParaSalvar);
+    showSaveStatus('✅ Dados salvos com sucesso!');
+  } catch (error) {
+    console.error('Erro ao salvar:', error);
+    showSaveStatus('❌ Erro ao salvar', true);
+  }
+}
+
+async function carregarDadosFirebase() {
+  try {
+    const dbRef = ref(db);
+    const snapshot = await get(child(dbRef, 'captacoes/2026.2'));
+    
+    if (snapshot.exists()) {
+      const dadosSalvos = snapshot.val();
+      
+      data.forEach(item => {
+        if (item.gestor !== 'CONSOLIDADO' && dadosSalvos[item.unidade]) {
+          item.atual2026 = dadosSalvos[item.unidade].atual2026;
+        }
+      });
+      
+      showSaveStatus('📥 Dados carregados do Firebase');
+    } else {
+      console.log('Nenhum dado salvo encontrado');
+    }
+  } catch (error) {
+    console.error('Erro ao carregar:', error);
+  }
+  renderTable();
+  calcularTotaisGerais();
+  updateManagerCards();
+}
+
+// ============================================================
+// FUNÇÕES DA UI
+// ============================================================
 function getProjecaoRow(row) { return getProjection(row.maio2026, row.meta); }
 function getFinalProjectionForRow(row) { return getFinalProjection(row.maio2026, row.meta); }
 function getCurrentPct(row) { return row.meta ? row.atual2026 / row.meta : 0; }
 function getProjPct(row) { return row.meta ? getFinalProjectionForRow(row) / row.meta : 0; }
-
-function normTxt(s) { return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim(); }
 
 function calcularTotaisGerais() {
   const unidades = data.filter(r => r.gestor !== 'CONSOLIDADO');
@@ -486,7 +578,6 @@ function calcularTotaisGerais() {
   const g = totalMeta ? totalProj / totalMeta : 0;
   document.getElementById('kgrowth').textContent = pct(g);
   
-  // Destaque da projeção
   const projText = document.getElementById('projDestaque');
   if (totalProj >= totalMeta) {
     projText.innerHTML = `✅ <strong>PROJEÇÃO: ${fmt.format(totalProj)}</strong> | Meta: ${fmt.format(totalMeta)} | Diferença: +${fmt.format(totalProj - totalMeta)} (${pct((totalProj-totalMeta)/totalMeta)} acima da meta)`;
@@ -495,8 +586,6 @@ function calcularTotaisGerais() {
     projText.innerHTML = `⚠️ <strong>PROJEÇÃO: ${fmt.format(totalProj)}</strong> | Meta: ${fmt.format(totalMeta)} | Diferença: ${fmt.format(totalProj - totalMeta)} (${pct((totalMeta-totalProj)/totalMeta)} abaixo da meta)`;
     projText.style.borderLeftColor = '#dc2626';
   }
-  
-  return {totalMaio, totalAtual, totalProj};
 }
 
 function drawUnitChart(row) {
@@ -535,7 +624,6 @@ function drawUnitChart(row) {
   const getX = idx => padL + idx * (chartW / (labels.length - 1));
   const getY = val => top + chartH * (1 - val / maxVal);
   
-  // Linha da meta
   if (meta > 0) {
     const yMeta = getY(meta);
     ctx.beginPath(); ctx.setLineDash([8, 6]); ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 2;
@@ -544,7 +632,6 @@ function drawUnitChart(row) {
     ctx.fillText('Meta: ' + fmt.format(meta), padL + 10, yMeta - 5);
   }
   
-  // Linha da captação atual
   if (current > 0 && current !== mayValue) {
     const yCurrent = getY(current);
     ctx.beginPath(); ctx.setLineDash([4, 4]); ctx.strokeStyle = '#059669'; ctx.lineWidth = 2;
@@ -553,7 +640,6 @@ function drawUnitChart(row) {
     ctx.fillText('Atual: ' + fmt.format(current), padL + 10, yCurrent + 15);
   }
   
-  // Linha da projeção
   ctx.beginPath(); ctx.strokeStyle = '#1f4e78'; ctx.lineWidth = 3; ctx.setLineDash([]);
   for (let i = 0; i < values.length; i++) {
     const x = getX(i), y = getY(values[i]);
@@ -561,7 +647,6 @@ function drawUnitChart(row) {
   }
   ctx.stroke();
   
-  // Pontos
   for (let i = 0; i < values.length; i++) {
     const x = getX(i), y = getY(values[i]);
     ctx.fillStyle = '#1f4e78'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
@@ -569,21 +654,20 @@ function drawUnitChart(row) {
     ctx.fillText(fmt.format(values[i]), x - 20, y - 8);
   }
   
-  // Labels
   ctx.fillStyle = '#6b7280'; ctx.font = '11px Inter'; ctx.textAlign = 'center';
   for (let i = 0; i < labels.length; i++) ctx.fillText(labels[i], getX(i), canvas.height - 20);
   
   ctx.fillStyle = '#1f2937'; ctx.font = 'bold 12px Inter'; ctx.textAlign = 'left';
-  ctx.fillText(`Captação MAIO: ${fmt.format(mayValue)}`, padL, 25);
-  ctx.fillText(`Captação ATUAL: ${fmt.format(current)}`, padL + 220, 25);
-  ctx.fillText(`Projeção final: ${fmt.format(projections[4])}`, padL + 440, 25);
+  ctx.fillText(`Captação MAIO (fixa): ${fmt.format(mayValue)}`, padL, 25);
+  ctx.fillText(`Captação ATUAL: ${fmt.format(current)}`, padL + 240, 25);
+  ctx.fillText(`Projeção final: ${fmt.format(projections[4])}`, padL + 480, 25);
 }
 
 function updateUnitPanel() {
   const row = data.find(r => r.unidade === selectedUnit) || data[0];
   if (!row) return;
   document.getElementById('unitTitle').textContent = `Projeção mensal — ${row.unidade}`;
-  document.getElementById('unitSummary').innerHTML = `Meta: ${fmt.format(row.meta)} | MAIO: ${fmt.format(row.maio2026)} | ATUAL: ${fmt.format(row.atual2026)}`;
+  document.getElementById('unitSummary').innerHTML = `Meta: ${fmt.format(row.meta)} | MAIO (fixo): ${fmt.format(row.maio2026)} | ATUAL: ${fmt.format(row.atual2026)}`;
   setTimeout(() => drawUnitChart(row), 100);
 }
 
@@ -613,8 +697,8 @@ function renderTable() {
     tr.innerHTML = `
       <td>${r.unidade}${r.gestor === 'CONSOLIDADO' ? '' : ''}</td>
       <td>${r.gestor !== 'CONSOLIDADO' ? r.gestor : '-'}</td>
-      <td><input class="edit-num edit-maio" type="number" value="${Math.round(r.maio2026)}" data-unidade="${r.unidade}" data-field="maio" ${r.gestor === 'CONSOLIDADO' ? 'readonly' : ''}></td>
-      <td><input class="edit-num edit-atual" type="number" value="${Math.round(r.atual2026)}" data-unidade="${r.unidade}" data-field="atual" ${r.gestor === 'CONSOLIDADO' ? 'readonly' : ''}></td>
+      <td><input class="edit-num-fixo" type="text" value="${Math.round(r.maio2026)}" readonly style="background:#e5e7eb; color:#6b7280;"></td>
+      <td><input class="edit-num edit-atual" type="number" value="${Math.round(r.atual2026)}" data-unidade="${r.unidade}" ${r.gestor === 'CONSOLIDADO' ? 'readonly' : ''}></td>
       <td>${fmt.format(proj[0])}</td>
       <td>${fmt.format(proj[1])}</td>
       <td>${fmt.format(proj[2])}</td>
@@ -627,7 +711,7 @@ function renderTable() {
     `;
     
     tr.addEventListener('click', (e) => {
-      if (e.target.classList && (e.target.classList.contains('edit-maio') || e.target.classList.contains('edit-atual'))) return;
+      if (e.target.classList && e.target.classList.contains('edit-atual')) return;
       selectedUnit = r.unidade;
       renderTable();
       openUnitModal();
@@ -635,27 +719,16 @@ function renderTable() {
     tbody.appendChild(tr);
   });
   
-  // Eventos de edição
-  document.querySelectorAll('.edit-maio').forEach(inp => {
-    inp.addEventListener('click', e => e.stopPropagation());
-    inp.addEventListener('input', e => {
-      const row = data.find(x => x.unidade === e.target.dataset.unidade);
-      if (row && row.gestor !== 'CONSOLIDADO') {
-        row.maio2026 = Number(e.target.value) || 0;
-        renderTable();
-        calcularTotaisGerais();
-      }
-    });
-  });
-  
   document.querySelectorAll('.edit-atual').forEach(inp => {
     inp.addEventListener('click', e => e.stopPropagation());
-    inp.addEventListener('input', e => {
+    inp.addEventListener('input', async (e) => {
       const row = data.find(x => x.unidade === e.target.dataset.unidade);
       if (row && row.gestor !== 'CONSOLIDADO') {
         row.atual2026 = Number(e.target.value) || 0;
         renderTable();
         calcularTotaisGerais();
+        updateManagerCards();
+        await salvarDadosFirebase();
       }
     });
   });
@@ -671,11 +744,12 @@ function resetValues() {
   selectedUnit = data[0]?.unidade || '';
   renderTable();
   calcularTotaisGerais();
+  updateManagerCards();
+  salvarDadosFirebase();
 }
 
 function setSortMode(mode) { sortMode = mode; renderTable(); }
 
-// Gestores para filtro
 const gestoresList = ['OPERAÇÕES', 'PAULO PALMEIRA', 'MARCUS PONTE', 'EDEN FERREIRA', 'AISLANE BELO'];
 
 function updateManagerCards() {
@@ -726,8 +800,8 @@ function filterByManager(gestor) {
     tr.innerHTML = `
       <td>${r.unidade}</td>
       <td>${r.gestor}</td>
-      <td><input class="edit-num edit-maio" type="number" value="${Math.round(r.maio2026)}" data-unidade="${r.unidade}" data-field="maio"></td>
-      <td><input class="edit-num edit-atual" type="number" value="${Math.round(r.atual2026)}" data-unidade="${r.unidade}" data-field="atual"></td>
+      <td><input class="edit-num-fixo" type="text" value="${Math.round(r.maio2026)}" readonly style="background:#e5e7eb; color:#6b7280;"></td>
+      <td><input class="edit-num edit-atual" type="number" value="${Math.round(r.atual2026)}" data-unidade="${r.unidade}"></td>
       <td>${fmt.format(proj[0])}</td>
       <td>${fmt.format(proj[1])}</td>
       <td>${fmt.format(proj[2])}</td>
@@ -739,7 +813,7 @@ function filterByManager(gestor) {
       <td class="${getProjPct(r) >= 1 ? 'good-text' : 'bad-text'}">${pct(getProjPct(r))}</td>
     `;
     tr.addEventListener('click', (e) => {
-      if (e.target.classList && (e.target.classList.contains('edit-maio') || e.target.classList.contains('edit-atual'))) return;
+      if (e.target.classList && e.target.classList.contains('edit-atual')) return;
       selectedUnit = r.unidade;
       filterByManager(gestor);
       openUnitModal();
@@ -747,21 +821,19 @@ function filterByManager(gestor) {
     tbody.appendChild(tr);
   });
   
-  // Reaplicar eventos
-  document.querySelectorAll('.edit-maio, .edit-atual').forEach(inp => {
+  document.querySelectorAll('.edit-atual').forEach(inp => {
     inp.addEventListener('click', e => e.stopPropagation());
-    inp.addEventListener('input', e => {
+    inp.addEventListener('input', async (e) => {
       const row = data.find(x => x.unidade === e.target.dataset.unidade);
       if (row) {
-        if (e.target.classList.contains('edit-maio')) row.maio2026 = Number(e.target.value) || 0;
-        if (e.target.classList.contains('edit-atual')) row.atual2026 = Number(e.target.value) || 0;
+        row.atual2026 = Number(e.target.value) || 0;
         filterByManager(gestor);
         calcularTotaisGerais();
+        await salvarDadosFirebase();
       }
     });
   });
   
-  // Atualizar totals para o filtro
   const totalMaio = rows.reduce((a,r) => a + r.maio2026, 0);
   const totalAtual = rows.reduce((a,r) => a + r.atual2026, 0);
   const totalMeta = rows.reduce((a,r) => a + r.meta, 0);
@@ -789,7 +861,6 @@ function initFilters() {
     }
   });
   
-  // Preencher filtro de unidade
   uf.innerHTML = '<option value="TODAS">Todas</option>';
   unidadesData.sort((a,b) => a.unidade.localeCompare(b.unidade)).forEach(r => {
     const opt = document.createElement('option');
@@ -817,7 +888,11 @@ function initFilters() {
   calcularTotaisGerais();
 }
 
-setTimeout(() => { initFilters(); }, 50);
+// Inicialização
+setTimeout(async () => {
+  await carregarDadosFirebase();
+  initFilters();
+}, 50);
 </script>
 </body>
 </html>
