@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Projeção de Captação 26.2 — Com Firebase</title>
+<title>Projeção de Captação 26.2 — Salvamento em Nuvem</title>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -235,27 +235,25 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
 .save-status.show { opacity: 1; }
 .save-status.success { background: #059669; }
 .save-status.error { background: #dc2626; }
-.save-status.warning { background: #ea580c; }
 
-.storage-badge {
+.cloud-badge {
   position: fixed;
   bottom: 20px;
   left: 20px;
-  background: #1f4e78;
+  background: #059669;
   color: white;
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 0.7rem;
   z-index: 1000;
-  cursor: pointer;
 }
 </style>
 </head>
 <body>
 
 <header class="header">
-  <h1>Projeção de Captação 26.2 <span class="method-badge">Com Salvamento</span></h1>
-  <p>Captação MAIO é fixa. Edite a coluna ATUAL. Os dados são salvos automaticamente.</p>
+  <h1>Projeção de Captação 26.2 <span class="method-badge">Salvo na Nuvem</span></h1>
+  <p>Captação MAIO é fixa. Edite a coluna ATUAL. Os dados são salvos automaticamente na nuvem (Firebase).</p>
 </header>
 
 <div class="container">
@@ -351,8 +349,8 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
   </div>
 </div>
 
-<div id="saveStatus" class="save-status">✅ Salvo!</div>
-<div id="storageBadge" class="storage-badge">💾 Salvando localmente</div>
+<div id="saveStatus" class="save-status">✅ Salvo na nuvem!</div>
+<div id="cloudBadge" class="cloud-badge">☁️ Salvando na nuvem (Firebase)</div>
 
 <script type="module">
 // ============================================================
@@ -371,20 +369,18 @@ const firebaseConfig = {
   appId: "1:607702438115:web:fd87adcfc10ed4de74f5d6"
 };
 
-let app, db;
-let firebaseDisponivel = false;
+let db;
+let firebaseConectado = false;
 
 try {
-  app = initializeApp(firebaseConfig);
+  const app = initializeApp(firebaseConfig);
   db = getDatabase(app);
-  firebaseDisponivel = true;
-  console.log('✅ Firebase conectado');
-  document.getElementById('storageBadge').innerHTML = '☁️ Salvando na nuvem (Firebase)';
-  document.getElementById('storageBadge').style.background = '#059669';
+  firebaseConectado = true;
+  console.log('✅ Firebase conectado com sucesso!');
 } catch (error) {
-  console.warn('⚠️ Firebase não disponível, usando LocalStorage:', error);
-  document.getElementById('storageBadge').innerHTML = '💾 Salvando localmente (navegador)';
-  document.getElementById('storageBadge').style.background = '#ea580c';
+  console.error('❌ Erro ao conectar ao Firebase:', error);
+  document.getElementById('cloudBadge').innerHTML = '⚠️ Erro de conexão com a nuvem';
+  document.getElementById('cloudBadge').style.background = '#dc2626';
 }
 
 // ============================================================
@@ -461,7 +457,7 @@ function getFinalProjection(mayValue, meta = null) {
 }
 
 // ============================================================
-// DADOS DAS UNIDADES
+// DADOS DAS UNIDADES (BASE INICIAL)
 // ============================================================
 const unidadesData = [
   {unidade: "UNINASSAU - Graças", gestor: "PAULO PALMEIRA", maio2026: 74, atual2026: 106, meta: 2123},
@@ -542,20 +538,24 @@ let sortMode = 'desc';
 const fmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const pct = v => isFinite(v) ? (v * 100).toFixed(1).replace('.', ',') + '%' : '0,0%';
 
-function showSaveStatus(message, isError = false, isWarning = false) {
+function showSaveStatus(message, isError = false) {
   const statusDiv = document.getElementById('saveStatus');
   statusDiv.textContent = message;
   statusDiv.className = 'save-status show';
   if (isError) statusDiv.classList.add('error');
-  else if (isWarning) statusDiv.classList.add('warning');
   else statusDiv.classList.add('success');
   setTimeout(() => statusDiv.classList.remove('show'), 2000);
 }
 
 // ============================================================
-// SALVAMENTO (Firebase + LocalStorage fallback)
+// SALVAMENTO APENAS NA NUVEM (FIREBASE)
 // ============================================================
-async function salvarDados() {
+async function salvarDadosFirebase() {
+  if (!firebaseConectado || !db) {
+    showSaveStatus('❌ Firebase não conectado!', true);
+    return false;
+  }
+  
   const unidadesParaSalvar = data.filter(r => r.gestor !== 'CONSOLIDADO');
   const dadosParaSalvar = {};
   unidadesParaSalvar.forEach(r => {
@@ -567,67 +567,53 @@ async function salvarDados() {
     };
   });
   
-  localStorage.setItem('captacao_2026_2', JSON.stringify(dadosParaSalvar));
-  
-  if (firebaseDisponivel && db) {
-    try {
-      await set(ref(db, 'captacoes/2026.2'), dadosParaSalvar);
-      showSaveStatus('✅ Salvo na nuvem (Firebase)');
-      document.getElementById('storageBadge').innerHTML = '☁️ Salvando na nuvem (Firebase)';
-      document.getElementById('storageBadge').style.background = '#059669';
-    } catch (error) {
-      console.error('Erro Firebase:', error);
-      showSaveStatus('⚠️ Salvo apenas localmente', false, true);
-      document.getElementById('storageBadge').innerHTML = '💾 Salvando localmente';
-      document.getElementById('storageBadge').style.background = '#ea580c';
-    }
-  } else {
-    showSaveStatus('💾 Salvo localmente');
-    document.getElementById('storageBadge').innerHTML = '💾 Salvando localmente';
-    document.getElementById('storageBadge').style.background = '#ea580c';
+  try {
+    await set(ref(db, 'captacoes/2026.2'), dadosParaSalvar);
+    showSaveStatus('☁️ Salvo na nuvem!');
+    document.getElementById('cloudBadge').innerHTML = '☁️ Salvando na nuvem (Firebase)';
+    document.getElementById('cloudBadge').style.background = '#059669';
+    return true;
+  } catch (error) {
+    console.error('Erro ao salvar no Firebase:', error);
+    showSaveStatus('❌ Erro ao salvar na nuvem! Verifique as regras do Firebase.', true);
+    document.getElementById('cloudBadge').innerHTML = '⚠️ Erro ao salvar na nuvem';
+    document.getElementById('cloudBadge').style.background = '#dc2626';
+    return false;
   }
 }
 
-async function carregarDados() {
-  const localData = localStorage.getItem('captacao_2026_2');
-  let dadosCarregados = false;
-  
-  if (localData) {
-    const dadosSalvos = JSON.parse(localData);
-    data.forEach(item => {
-      if (item.gestor !== 'CONSOLIDADO' && dadosSalvos[item.unidade]) {
-        item.atual2026 = dadosSalvos[item.unidade].atual2026;
-      }
-    });
-    dadosCarregados = true;
+async function carregarDadosFirebase() {
+  if (!firebaseConectado || !db) {
+    showSaveStatus('❌ Firebase não conectado!', true);
+    return false;
   }
   
-  if (firebaseDisponivel && db) {
-    try {
-      const dbRef = ref(db);
-      const snapshot = await get(child(dbRef, 'captacoes/2026.2'));
-      if (snapshot.exists()) {
-        const dadosSalvos = snapshot.val();
-        data.forEach(item => {
-          if (item.gestor !== 'CONSOLIDADO' && dadosSalvos[item.unidade]) {
-            item.atual2026 = dadosSalvos[item.unidade].atual2026;
-          }
-        });
-        showSaveStatus('☁️ Dados carregados da nuvem');
-        document.getElementById('storageBadge').innerHTML = '☁️ Salvando na nuvem';
-        document.getElementById('storageBadge').style.background = '#059669';
-        dadosCarregados = true;
-      }
-    } catch (error) {
-      console.warn('Erro ao carregar do Firebase:', error);
-      if (!dadosCarregados) {
-        showSaveStatus('📥 Usando dados locais', false, true);
-      }
+  try {
+    const dbRef = ref(db);
+    const snapshot = await get(child(dbRef, 'captacoes/2026.2'));
+    
+    if (snapshot.exists()) {
+      const dadosSalvos = snapshot.val();
+      data.forEach(item => {
+        if (item.gestor !== 'CONSOLIDADO' && dadosSalvos[item.unidade]) {
+          item.atual2026 = dadosSalvos[item.unidade].atual2026;
+        }
+      });
+      showSaveStatus('☁️ Dados carregados da nuvem!');
+      document.getElementById('cloudBadge').innerHTML = '☁️ Salvando na nuvem (Firebase)';
+      document.getElementById('cloudBadge').style.background = '#059669';
+      return true;
+    } else {
+      showSaveStatus('📥 Nenhum dado salvo. Salvando dados iniciais...');
+      await salvarDadosFirebase();
+      return false;
     }
-  }
-  
-  if (!dadosCarregados) {
-    showSaveStatus('📥 Dados padrão carregados');
+  } catch (error) {
+    console.error('Erro ao carregar do Firebase:', error);
+    showSaveStatus('❌ Erro ao carregar da nuvem! Verifique as regras do Firebase.', true);
+    document.getElementById('cloudBadge').innerHTML = '⚠️ Erro de conexão com a nuvem';
+    document.getElementById('cloudBadge').style.background = '#dc2626';
+    return false;
   }
 }
 
@@ -743,9 +729,6 @@ function updateUnitPanel() {
   setTimeout(() => drawUnitChart(row), 100);
 }
 
-// ============================================================
-// FUNÇÕES DO MODAL CORRIGIDAS
-// ============================================================
 function openUnitModal() { 
   const modal = document.getElementById('unitModal');
   modal.classList.add('open'); 
@@ -757,12 +740,9 @@ function closeUnitModal() {
   modal.classList.remove('open'); 
 }
 
-// Eventos do modal
 document.getElementById('modalCloseBtn')?.addEventListener('click', closeUnitModal);
 document.getElementById('unitModal')?.addEventListener('click', (e) => {
-  if (e.target === document.getElementById('unitModal')) {
-    closeUnitModal();
-  }
+  if (e.target === document.getElementById('unitModal')) closeUnitModal();
 });
 
 function renderTable() {
@@ -802,8 +782,7 @@ function renderTable() {
     `;
     
     tr.addEventListener('click', (e) => {
-      if (e.target.classList && e.target.classList.contains('edit-atual')) return;
-      if (e.target.classList && e.target.classList.contains('edit-num-fixo')) return;
+      if (e.target.classList && (e.target.classList.contains('edit-atual') || e.target.classList.contains('edit-num-fixo'))) return;
       selectedUnit = r.unidade;
       renderTable();
       openUnitModal();
@@ -820,13 +799,13 @@ function renderTable() {
         renderTable();
         calcularTotaisGerais();
         updateManagerCards();
-        await salvarDados();
+        await salvarDadosFirebase();
       }
     });
   });
 }
 
-function resetValues() {
+async function resetValues() {
   data = JSON.parse(JSON.stringify(allData));
   data.forEach(r => { 
     r.maio2026 = Number(r.maio2026) || 0;
@@ -837,7 +816,7 @@ function resetValues() {
   renderTable();
   calcularTotaisGerais();
   updateManagerCards();
-  salvarDados();
+  await salvarDadosFirebase();
 }
 
 function setSortMode(mode) { sortMode = mode; renderTable(); }
@@ -905,8 +884,7 @@ function filterByManager(gestor) {
       <td class="${getProjPct(r) >= 1 ? 'good-text' : 'bad-text'}">${pct(getProjPct(r))}</td>
     `;
     tr.addEventListener('click', (e) => {
-      if (e.target.classList && e.target.classList.contains('edit-atual')) return;
-      if (e.target.classList && e.target.classList.contains('edit-num-fixo')) return;
+      if (e.target.classList && (e.target.classList.contains('edit-atual') || e.target.classList.contains('edit-num-fixo'))) return;
       selectedUnit = r.unidade;
       filterByManager(gestor);
       openUnitModal();
@@ -922,7 +900,7 @@ function filterByManager(gestor) {
         row.atual2026 = Number(e.target.value) || 0;
         filterByManager(gestor);
         calcularTotaisGerais();
-        await salvarDados();
+        await salvarDadosFirebase();
       }
     });
   });
@@ -983,7 +961,7 @@ function initFilters() {
 
 // Inicialização
 setTimeout(async () => {
-  await carregarDados();
+  await carregarDadosFirebase();
   initFilters();
 }, 50);
 </script>
