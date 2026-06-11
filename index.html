@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Projeção de Captação 26.2 — Com Firebase + LocalStorage</title>
+<title>Projeção de Captação 26.2 — Com Firebase</title>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -167,9 +167,28 @@ body {
   width: min(95vw, 900px);
   max-height: 90vh;
   overflow: auto;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
-.modal-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
-.modal-close { background: #dc2626; color: white; border: none; padding: 0.375rem 0.875rem; border-radius: 0.5rem; cursor: pointer; }
+.modal-header { 
+  padding: 1rem 1.5rem; 
+  border-bottom: 1px solid var(--line); 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+  background: var(--gray-50);
+  border-radius: 1rem 1rem 0 0;
+}
+.modal-close { 
+  background: #dc2626; 
+  color: white; 
+  border: none; 
+  padding: 0.5rem 1rem; 
+  border-radius: 0.5rem; 
+  cursor: pointer; 
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.modal-close:hover { background: #b91c1c; }
 .modal-body { padding: 1.5rem; }
 canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
 .legend { display: flex; gap: 1rem; margin-top: 1rem; font-size: 0.7rem; }
@@ -236,7 +255,7 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
 
 <header class="header">
   <h1>Projeção de Captação 26.2 <span class="method-badge">Com Salvamento</span></h1>
-  <p>Captação MAIO é fixa. Edite a coluna ATUAL. Os dados são salvos automaticamente no seu navegador.</p>
+  <p>Captação MAIO é fixa. Edite a coluna ATUAL. Os dados são salvos automaticamente.</p>
 </header>
 
 <div class="container">
@@ -315,12 +334,19 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
 <div id="unitModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
-      <div><strong id="unitTitle">Projeção mensal</strong><div class="note" id="unitSummary"></div></div>
-      <button class="modal-close" onclick="closeUnitModal()">Fechar</button>
+      <div>
+        <strong id="unitTitle" style="font-size: 1rem;">Projeção mensal</strong>
+        <div class="note" id="unitSummary" style="margin-top: 4px;"></div>
+      </div>
+      <button class="modal-close" id="modalCloseBtn">Fechar</button>
     </div>
     <div class="modal-body">
       <canvas id="chartUnit" width="800" height="400"></canvas>
-      <div class="legend"><span><i class="dot blue"></i>Projeção acumulada</span><span><i class="dot green"></i>Captação atual</span><span><i class="dot red"></i>Meta</span></div>
+      <div class="legend">
+        <span><i class="dot blue"></i>Projeção acumulada</span>
+        <span><i class="dot green"></i>Captação atual</span>
+        <span><i class="dot red"></i>Meta</span>
+      </div>
     </div>
   </div>
 </div>
@@ -519,7 +545,7 @@ const pct = v => isFinite(v) ? (v * 100).toFixed(1).replace('.', ',') + '%' : '0
 function showSaveStatus(message, isError = false, isWarning = false) {
   const statusDiv = document.getElementById('saveStatus');
   statusDiv.textContent = message;
-  statusDiv.className = `save-status show`;
+  statusDiv.className = 'save-status show';
   if (isError) statusDiv.classList.add('error');
   else if (isWarning) statusDiv.classList.add('warning');
   else statusDiv.classList.add('success');
@@ -541,10 +567,8 @@ async function salvarDados() {
     };
   });
   
-  // Sempre salvar no LocalStorage como backup
   localStorage.setItem('captacao_2026_2', JSON.stringify(dadosParaSalvar));
   
-  // Tentar salvar no Firebase se disponível
   if (firebaseDisponivel && db) {
     try {
       await set(ref(db, 'captacoes/2026.2'), dadosParaSalvar);
@@ -553,19 +577,18 @@ async function salvarDados() {
       document.getElementById('storageBadge').style.background = '#059669';
     } catch (error) {
       console.error('Erro Firebase:', error);
-      showSaveStatus('⚠️ Salvo apenas localmente (Firebase offline)', false, true);
-      document.getElementById('storageBadge').innerHTML = '💾 Salvando localmente (navegador)';
+      showSaveStatus('⚠️ Salvo apenas localmente', false, true);
+      document.getElementById('storageBadge').innerHTML = '💾 Salvando localmente';
       document.getElementById('storageBadge').style.background = '#ea580c';
     }
   } else {
-    showSaveStatus('💾 Salvo localmente (navegador)');
-    document.getElementById('storageBadge').innerHTML = '💾 Salvando localmente (navegador)';
+    showSaveStatus('💾 Salvo localmente');
+    document.getElementById('storageBadge').innerHTML = '💾 Salvando localmente';
     document.getElementById('storageBadge').style.background = '#ea580c';
   }
 }
 
 async function carregarDados() {
-  // Primeiro tentar carregar do LocalStorage
   const localData = localStorage.getItem('captacao_2026_2');
   let dadosCarregados = false;
   
@@ -577,10 +600,8 @@ async function carregarDados() {
       }
     });
     dadosCarregados = true;
-    showSaveStatus('📥 Dados carregados do navegador');
   }
   
-  // Tentar carregar do Firebase e sobrescrever se tiver dados mais recentes
   if (firebaseDisponivel && db) {
     try {
       const dbRef = ref(db);
@@ -592,21 +613,21 @@ async function carregarDados() {
             item.atual2026 = dadosSalvos[item.unidade].atual2026;
           }
         });
-        showSaveStatus('☁️ Dados carregados da nuvem (Firebase)');
-        document.getElementById('storageBadge').innerHTML = '☁️ Salvando na nuvem (Firebase)';
+        showSaveStatus('☁️ Dados carregados da nuvem');
+        document.getElementById('storageBadge').innerHTML = '☁️ Salvando na nuvem';
         document.getElementById('storageBadge').style.background = '#059669';
         dadosCarregados = true;
       }
     } catch (error) {
       console.warn('Erro ao carregar do Firebase:', error);
       if (!dadosCarregados) {
-        showSaveStatus('📥 Usando dados locais (Firebase offline)', false, true);
+        showSaveStatus('📥 Usando dados locais', false, true);
       }
     }
   }
   
   if (!dadosCarregados) {
-    showSaveStatus('📥 Usando dados padrão');
+    showSaveStatus('📥 Dados padrão carregados');
   }
 }
 
@@ -722,8 +743,27 @@ function updateUnitPanel() {
   setTimeout(() => drawUnitChart(row), 100);
 }
 
-function openUnitModal() { document.getElementById('unitModal').classList.add('open'); updateUnitPanel(); }
-function closeUnitModal() { document.getElementById('unitModal').classList.remove('open'); }
+// ============================================================
+// FUNÇÕES DO MODAL CORRIGIDAS
+// ============================================================
+function openUnitModal() { 
+  const modal = document.getElementById('unitModal');
+  modal.classList.add('open'); 
+  updateUnitPanel();
+}
+
+function closeUnitModal() { 
+  const modal = document.getElementById('unitModal');
+  modal.classList.remove('open'); 
+}
+
+// Eventos do modal
+document.getElementById('modalCloseBtn')?.addEventListener('click', closeUnitModal);
+document.getElementById('unitModal')?.addEventListener('click', (e) => {
+  if (e.target === document.getElementById('unitModal')) {
+    closeUnitModal();
+  }
+});
 
 function renderTable() {
   const q = document.getElementById('search').value.toLowerCase();
@@ -763,6 +803,7 @@ function renderTable() {
     
     tr.addEventListener('click', (e) => {
       if (e.target.classList && e.target.classList.contains('edit-atual')) return;
+      if (e.target.classList && e.target.classList.contains('edit-num-fixo')) return;
       selectedUnit = r.unidade;
       renderTable();
       openUnitModal();
@@ -865,6 +906,7 @@ function filterByManager(gestor) {
     `;
     tr.addEventListener('click', (e) => {
       if (e.target.classList && e.target.classList.contains('edit-atual')) return;
+      if (e.target.classList && e.target.classList.contains('edit-num-fixo')) return;
       selectedUnit = r.unidade;
       filterByManager(gestor);
       openUnitModal();
