@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Projeção de Captação 26.2 — Com Supabase</title>
+<title>Projeção de Captação 26.2 — Firebase</title>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -240,33 +240,35 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
   position: fixed;
   bottom: 20px;
   left: 20px;
-  background: #059669;
+  background: #ea580c;
   color: white;
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 0.7rem;
   z-index: 1000;
+  cursor: pointer;
 }
 
-.loading {
+.test-btn {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-  z-index: 2000;
-  text-align: center;
+  bottom: 20px;
+  left: 200px;
+  background: #1f4e78;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  z-index: 1000;
+  cursor: pointer;
+  border: none;
 }
 </style>
 </head>
 <body>
 
 <header class="header">
-  <h1>Projeção de Captação 26.2 <span class="method-badge">Salvo na Nuvem</span></h1>
-  <p>Captação MAIO é fixa. Edite a coluna ATUAL. Os dados são salvos automaticamente na nuvem (Supabase).</p>
+  <h1>Projeção de Captação 26.2 <span class="method-badge">Firebase</span></h1>
+  <p>Captação MAIO é fixa. Edite a coluna ATUAL. Os dados são salvos automaticamente no Firebase.</p>
 </header>
 
 <div class="container">
@@ -362,32 +364,61 @@ canvas { width: 100%; height: auto; background: white; border-radius: 0.5rem; }
   </div>
 </div>
 
-<div id="saveStatus" class="save-status">✅ Salvo na nuvem!</div>
-<div id="cloudBadge" class="cloud-badge">☁️ Conectando...</div>
+<div id="saveStatus" class="save-status">✅ Salvo!</div>
+<div id="cloudBadge" class="cloud-badge">☁️ Conectando ao Firebase...</div>
+<button id="testFirebaseBtn" class="test-btn">🔧 Testar Firebase</button>
 
-<script>
+<script type="module">
 // ============================================================
-// SUPABASE CONFIGURAÇÃO (substituto do Firebase)
+// FIREBASE CONFIGURAÇÃO
 // ============================================================
-// Para usar Supabase, você precisa criar uma conta grátis em:
-// https://supabase.com
-// Depois substitua as URLs abaixo pelas suas
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, set, get, child, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-const SUPABASE_URL = "https://SEU_PROJETO.supabase.co";
-const SUPABASE_ANON_KEY = "SUA_CHAVE_ANON";
+const firebaseConfig = {
+  apiKey: "AIzaSyD4cS-Y6N-mX2TTuu_YVFpxv35LrT6XPqQ",
+  authDomain: "capt26-2.firebaseapp.com",
+  databaseURL: "https://capt26-2-default-rtdb.firebaseio.com",
+  projectId: "capt26-2",
+  storageBucket: "capt26-2.firebasestorage.app",
+  messagingSenderId: "607702438115",
+  appId: "1:607702438115:web:fd87adcfc10ed4de74f5d6"
+};
 
-// Como o Supabase requer configuração, vou usar uma versão que salva
-// em um Google Sheet público como alternativa mais simples.
+let db;
+let firebaseConectado = false;
 
-// Por enquanto, vamos usar uma abordagem de salvamento via JSONBin.io
-// que é gratuito e não requer configuração complexa
+try {
+  const app = initializeApp(firebaseConfig);
+  db = getDatabase(app);
+  firebaseConectado = true;
+  console.log('✅ Firebase inicializado');
+  document.getElementById('cloudBadge').innerHTML = '☁️ Firebase conectado';
+  document.getElementById('cloudBadge').style.background = '#059669';
+} catch (error) {
+  console.error('❌ Erro Firebase:', error);
+  document.getElementById('cloudBadge').innerHTML = '❌ Erro no Firebase';
+  document.getElementById('cloudBadge').style.background = '#dc2626';
+}
 
-// JSONBin.io - Serviço gratuito para salvar JSON na nuvem
-const JSONBIN_URL = "https://api.jsonbin.io/v3/b";
-const JSONBIN_SECRET = "$2a$10$6rVqJkZxYqZnCxZG7jJgQ.YqZxYqZnCxZG7jJgQ"; // Chave do seu bin
-
-// Criar um bin único para seu projeto
-const BIN_ID = "seu-bin-id-aqui"; // Você precisa criar um bin
+// Botão para testar Firebase
+document.getElementById('testFirebaseBtn')?.addEventListener('click', async () => {
+  if (!db) {
+    alert('Firebase não inicializado!');
+    return;
+  }
+  try {
+    const testRef = ref(db, 'teste_conexao');
+    await set(testRef, { data: new Date().toISOString(), status: 'funcionando' });
+    alert('✅ Firebase está funcionando! Conexão ok.');
+    document.getElementById('cloudBadge').innerHTML = '☁️ Firebase OK';
+    document.getElementById('cloudBadge').style.background = '#059669';
+  } catch (error) {
+    alert('❌ Erro no Firebase: ' + error.message + '\n\nVocê precisa configurar as regras do Firebase:\n1. Acesse Firebase Console\n2. Realtime Database → Regras\n3. Cole: { "rules": { ".read": true, ".write": true } }\n4. Publique');
+    document.getElementById('cloudBadge').innerHTML = '❌ Erro de permissão';
+    document.getElementById('cloudBadge').style.background = '#dc2626';
+  }
+});
 
 // ============================================================
 // DADOS HISTÓRICOS ACUMULADOS
@@ -554,78 +585,74 @@ function showSaveStatus(message, isError = false) {
 }
 
 // ============================================================
-// FUNÇÃO DE SALVAMENTO USANDO SUPABASE (não precisa de configuração)
+// SALVAMENTO NO FIREBASE
 // ============================================================
-// Vou usar uma abordagem mais simples: exportar/importar JSON
-// Como o Firebase está dando erro, sugiro usar um Google Sheet público
-
-// Por enquanto, vou manter os dados apenas no navegador com opção de exportar
-// Você pode clicar no botão "Exportar" para baixar os dados e "Importar" para carregar
-
-function exportarDados() {
-  const dadosExportar = data.filter(r => r.gestor !== 'CONSOLIDADO').map(r => ({
-    unidade: r.unidade,
-    gestor: r.gestor,
-    maio2026: r.maio2026,
-    atual2026: r.atual2026,
-    meta: r.meta
-  }));
+async function salvarDadosFirebase() {
+  if (!db) {
+    showSaveStatus('❌ Firebase não conectado', true);
+    return false;
+  }
   
-  const dadosStr = JSON.stringify(dadosExportar, null, 2);
-  const blob = new Blob([dadosStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `captacao_2026_2_${new Date().toISOString().slice(0,19)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showSaveStatus('📥 Dados exportados com sucesso!');
+  const unidadesParaSalvar = data.filter(r => r.gestor !== 'CONSOLIDADO');
+  const dadosParaSalvar = {};
+  unidadesParaSalvar.forEach(r => {
+    dadosParaSalvar[r.unidade] = {
+      atual2026: r.atual2026,
+      maio2026: r.maio2026,
+      meta: r.meta,
+      gestor: r.gestor
+    };
+  });
+  
+  try {
+    await set(ref(db, 'captacoes/2026.2'), dadosParaSalvar);
+    showSaveStatus('☁️ Salvo no Firebase!');
+    document.getElementById('cloudBadge').innerHTML = '☁️ Firebase OK';
+    document.getElementById('cloudBadge').style.background = '#059669';
+    return true;
+  } catch (error) {
+    console.error('Erro ao salvar:', error);
+    showSaveStatus('❌ Erro ao salvar no Firebase', true);
+    document.getElementById('cloudBadge').innerHTML = '❌ Erro de permissão';
+    document.getElementById('cloudBadge').style.background = '#dc2626';
+    return false;
+  }
 }
 
-function importarDados(file) {
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const dadosImportados = JSON.parse(e.target.result);
-      dadosImportados.forEach(dadoImportado => {
-        const unidadeLocal = data.find(u => u.unidade === dadoImportado.unidade && u.gestor !== 'CONSOLIDADO');
-        if (unidadeLocal) {
-          unidadeLocal.atual2026 = dadoImportado.atual2026;
+async function carregarDadosFirebase() {
+  if (!db) {
+    showSaveStatus('❌ Firebase não conectado', true);
+    return false;
+  }
+  
+  try {
+    const dbRef = ref(db);
+    const snapshot = await get(child(dbRef, 'captacoes/2026.2'));
+    
+    if (snapshot.exists()) {
+      const dadosSalvos = snapshot.val();
+      data.forEach(item => {
+        if (item.gestor !== 'CONSOLIDADO' && dadosSalvos[item.unidade]) {
+          item.atual2026 = dadosSalvos[item.unidade].atual2026;
         }
       });
-      renderTable();
-      calcularTotaisGerais();
-      updateManagerCards();
-      showSaveStatus('📤 Dados importados com sucesso!');
-    } catch (error) {
-      showSaveStatus('❌ Erro ao importar arquivo', true);
+      showSaveStatus('☁️ Dados carregados do Firebase!');
+      document.getElementById('cloudBadge').innerHTML = '☁️ Firebase OK';
+      document.getElementById('cloudBadge').style.background = '#059669';
+      return true;
+    } else {
+      showSaveStatus('📥 Nenhum dado salvo. Salvando dados iniciais...');
+      await salvarDadosFirebase();
+      return false;
     }
-  };
-  reader.readAsText(file);
+  } catch (error) {
+    console.error('Erro ao carregar:', error);
+    showSaveStatus('❌ Erro ao carregar do Firebase', true);
+    document.getElementById('cloudBadge').innerHTML = '❌ Erro de conexão';
+    document.getElementById('cloudBadge').style.background = '#dc2626';
+    return false;
+  }
 }
-
-// Adicionar botões de importar/exportar
-const toolbar = document.querySelector('.toolbar');
-const exportBtn = document.createElement('button');
-exportBtn.className = 'btn btn-outline';
-exportBtn.innerHTML = '📥 Exportar dados';
-exportBtn.onclick = exportarDados;
-toolbar.appendChild(exportBtn);
-
-const importInput = document.createElement('input');
-importInput.type = 'file';
-importInput.accept = '.json';
-importInput.style.display = 'none';
-importInput.onchange = (e) => {
-  if (e.target.files[0]) importarDados(e.target.files[0]);
-  importInput.value = '';
-};
-const importBtn = document.createElement('button');
-importBtn.className = 'btn btn-outline';
-importBtn.innerHTML = '📤 Importar dados';
-importBtn.onclick = () => importInput.click();
-toolbar.appendChild(importBtn);
-toolbar.appendChild(importInput);
 
 function getProjecaoRow(row) { return getProjection(row.maio2026, row.meta); }
 function getFinalProjectionForRow(row) { return getFinalProjection(row.maio2026, row.meta); }
@@ -809,7 +836,7 @@ function renderTable() {
         renderTable();
         calcularTotaisGerais();
         updateManagerCards();
-        showSaveStatus('💾 Dados atualizados localmente (use Exportar para salvar)');
+        await salvarDadosFirebase();
       }
     });
   });
@@ -826,7 +853,7 @@ async function resetValues() {
   renderTable();
   calcularTotaisGerais();
   updateManagerCards();
-  showSaveStatus('🔄 Dados restaurados!');
+  await salvarDadosFirebase();
 }
 
 function setSortMode(mode) { sortMode = mode; renderTable(); }
@@ -910,7 +937,7 @@ function filterByManager(gestor) {
         row.atual2026 = Number(e.target.value) || 0;
         filterByManager(gestor);
         calcularTotaisGerais();
-        showSaveStatus('💾 Dados atualizados localmente');
+        await salvarDadosFirebase();
       }
     });
   });
@@ -967,12 +994,11 @@ function initFilters() {
   updateManagerCards();
   renderTable();
   calcularTotaisGerais();
-  document.getElementById('cloudBadge').innerHTML = '💾 Dados salvos localmente (use Exportar/Importar)';
-  document.getElementById('cloudBadge').style.background = '#ea580c';
 }
 
 // Inicialização
-setTimeout(() => {
+setTimeout(async () => {
+  await carregarDadosFirebase();
   initFilters();
 }, 50);
 </script>
